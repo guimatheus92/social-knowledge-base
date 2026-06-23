@@ -1,0 +1,11 @@
+# Download dos vídeos (incl. Stories / Em Destaque)
+instaloader>=4.14
+
+# RAG — busca/consulta das notas
+chromadb>=0.5
+sentence-transformers>=3.0
+
+# NOTA: a transcrição PT-BR roda DENTRO do MCP mcp-video-analyzer,
+# que usa o comando `whisper`. Instale-o no mesmo ambiente:
+#   pip install -U openai-whisper
+# (faster-whisper / whisper-ctranslate2 são upgrades de velocidade opcionais.)

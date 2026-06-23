@@ -1,0 +1,16 @@
+# Vídeos e áudio brutos — não versionar (pesados)
+downloads/
+audio/
+
+# Estado do RAG (regenerável)
+.rag/
+
+# Sessões / cookies do instaloader
+.instaloader
+*.session
+session-*
+
+# Python
+.venv/
+__pycache__/
+*.pyc

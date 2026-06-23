@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "video-analyzer": {
+      "command": "node",
+      "args": ["C:/Users/guilh/repos/mcp-video-analyzer/dist/index.js"],
+      "env": {
+        "WHISPER_MODEL": "small",
+        "WHISPER_LANGUAGE": "pt",
+        "WHISPER_BIN": "C:/Users/guilh/AppData/Local/Python/pythoncore-3.14-64/Scripts/whisper.exe",
+        "PYTHONUTF8": "1"
+      }
+    }
+  }
+}
