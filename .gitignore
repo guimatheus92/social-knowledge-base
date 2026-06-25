@@ -45,3 +45,6 @@ data/
 
 # Claude Code — configs locais da máquina (permissões)
 .claude/settings.local.json
+
+# Mockups de design (temporários — manter local enquanto a UI não é refeita)
+/design-mockups/
