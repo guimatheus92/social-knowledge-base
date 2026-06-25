@@ -35,8 +35,9 @@ Baixar TODOS os vídeos de uma conta (incluindo "Em Destaque"), analisar cada um
 ## Convenções
 
 - `downloads/<perfil>/` — vídeos brutos (gitignored). `audio/` — opcional (gitignored).
+- **`notes/<perfil>/` e `manifests/` são estado pessoal/gerado — gitignored, NÃO versionados.** O repo versiona só o que é genérico (código + prompts + docs); as notas e o manifest são específicos do seu acervo/uso.
 - `notes/<perfil>/videos/<id>.md` — uma nota por vídeo (frontmatter YAML obrigatório). `notes/<perfil>/README.md` — índice. `notes/<perfil>/OVERVIEW.md` — resumão por tema (por conta). `notes/<perfil>/{GUIA-EMISSOES,SMILES,…}.md` — guias temáticos/por programa.
-- `manifests/<conta>.db` — estado/checkpoint em **SQLite** (fonte da verdade do progresso) + export JSON versionável `manifests/<conta>.json`. O `manifest.json` da raiz é **legado**.
+- `manifests/<conta>.db` — estado/checkpoint em **SQLite** (fonte da verdade do progresso) + export JSON `manifests/<conta>.json`. Ambos são **estado local (gitignored)**. O `manifest.json` da raiz é **legado** (idem, gitignored).
 - `prompts/` — prompts dos agentes. `scripts/` — download, transcrição GPU e RAG (Python); ver [`scripts/CLAUDE.md`](scripts/CLAUDE.md). `downloads/<perfil>/transcripts/` — sidecars de transcrição.
 - Timestamps em ISO 8601 (UTC) — use `date -Iseconds`.
 
@@ -53,7 +54,7 @@ O template da nota é canônico em [`prompts/build-notes.md`](prompts/build-note
 
 Há um app **Next.js 16 + TypeScript + Tailwind 4 + shadcn/ui (Base UI)** em [`app/`](app/) que dá UI ao download: adicionar várias contas, escolher mídia, dar Play, ver progresso ao vivo (SSE), tamanho, tempo, e navegar o acervo. É um **app único** — o Node chama as CLIs (`gallery-dl`/`yt-dlp`/`ffmpeg`) via `child_process` (sem backend Python).
 
-- **Manifest:** migrou de `manifest.json` (raiz, PT) para **SQLite por conta** em [`manifests/<conta>.db`](manifests/) (via `node:sqlite`), com export JSON versionável `manifests/<conta>.json`. Schema/repo em `app/src/server/db/`. Migração: `cd app && npx tsx src/server/migrate/importManifest.ts` (reconcilia com o disco).
+- **Manifest:** migrou de `manifest.json` (raiz, PT) para **SQLite por conta** em [`manifests/<conta>.db`](manifests/) (via `node:sqlite`), com export JSON `manifests/<conta>.json` (estado local — **gitignored**). Schema/repo em `app/src/server/db/`. Migração: `cd app && npx tsx src/server/migrate/importManifest.ts` (reconcilia com o disco).
 - **Engine:** `app/src/server/engine/` — `galleryDl.ts` (spawn `python -m gallery_dl`, parse stdout, **seedArchive** pra retomar sem re-baixar), `ffmpeg.ts` (injeta o ffmpeg no PATH), `jobManager.ts` (jobs por conta, abas em paralelo, serialização por cookies, SSE).
 - **Rodar:** `cd app && npm run dev` → http://localhost:3000. Cookies da conta de login ficam em `localStorage` (credencial; não versionar).
 - **Roda como servidor Node** (`next start`/`next dev`, runtime node — NÃO edge/serverless) por causa dos processos filhos + SSE.

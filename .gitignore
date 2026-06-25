@@ -23,10 +23,16 @@ app/.next/
 app/out/
 app/.turbo/
 
-# Manifests SQLite (regeneráveis) — versiona só os .json de export
-manifests/*.db
-manifests/*.db-wal
-manifests/*.db-shm
+# Manifests por conta (.db + .json export) — estado local/pessoal, NÃO versionar
+/manifests/*
+!/manifests/.gitkeep
+
+# Manifest legado da raiz (estado pessoal) — NÃO versionar
+/manifest.json
+
+# Notas geradas (pessoais, específicas do seu acervo/uso) — NÃO versionar
+/notes/*
+!/notes/.gitkeep
 
 # OCR language data (pesado, re-baixável)
 *.traineddata
