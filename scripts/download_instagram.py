@@ -1,30 +1,56 @@
 #!/usr/bin/env python3
-"""Baixa todos os vídeos de um perfil do Instagram (Reels, Stories, Em Destaque).
+"""Downloads every video from an Instagram profile (Reels, Stories, Highlights, Posts).
 
-Envolve o `instaloader` e registra o progresso em manifest.json para a execução
-ser retomável. Use uma CONTA DESCARTÁVEL no --login: highlights/stories exigem
-login e o Instagram pode aplicar rate-limit/ban a scrapers.
+Uses **gallery-dl** (instaloader stopped working: the web GraphQL endpoint it
+uses now returns 401 "Please wait a few minutes" since ~jan/2025).
+gallery-dl authenticates via the **browser cookies** (export a cookies.txt
+in Netscape format from a logged-in session) and downloads through the mobile API
+route, which Instagram still accepts.
 
-Uso:
-    python scripts/download_instagram.py <perfil> --login <sua_conta>
+Records progress in manifest.json so the run is resumable (and gallery-dl's
+--download-archive avoids re-downloading what already came in).
 
-Primeira vez (cria a sessão reutilizável; pede senha):
-    instaloader --login <sua_conta>
+Usage:
+    python scripts/download_instagram.py <perfil> --cookies C:\\caminho\\ig_cookies.txt
+
+Prerequisites:
+    pip install -U gallery-dl yt-dlp        # download + merge of video/audio
+    ffmpeg on the PATH (or installed via winget Gyan.FFmpeg) — without it the videos
+    come in WITHOUT audio and transcription breaks. This script tries to find it on its own.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+# UTF-8 output even on Windows (avoids mojibake/cp1252 in the script's prints).
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
 ROOT = Path(__file__).resolve().parent.parent
 DOWNLOADS = ROOT / "downloads"
 MANIFEST = ROOT / "manifest.json"
+
+# Profile tabs that gallery-dl knows how to download, and the corresponding `origem` in the note.
+TAB_ORIGIN = {
+    "highlights": "highlight",
+    "reels": "reel",
+    "stories": "story",
+    "posts": "post",
+}
+# Default covers every video without duplicating: on a creator account, "posts" (feed)
+# is almost entirely the same reels. "posts" stays optional via --tabs.
+DEFAULT_TABS = ["highlights", "reels", "stories"]
 
 
 def now_iso() -> str:
@@ -44,38 +70,72 @@ def save_manifest(data: dict) -> None:
     MANIFEST.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def find_ffmpeg_dir() -> str | None:
+    """ffmpeg is required for yt-dlp to merge video+audio. Finds the directory of the
+    binary even if it isn't on this session's PATH yet (a common case on Windows
+    right after installing via winget — the PATH only takes effect in new sessions)."""
+    found = shutil.which("ffmpeg")
+    if found:
+        return str(Path(found).parent)
+    # Fallback: typical winget installation (Gyan.FFmpeg).
+    local = os.environ.get("LOCALAPPDATA", "")
+    if local:
+        candidates = sorted(Path(local).glob(
+            "Microsoft/WinGet/Packages/Gyan.FFmpeg*/*/bin/ffmpeg.exe"))
+        if candidates:
+            return str(candidates[-1].parent)
+    return None
+
+
+def build_env() -> dict:
+    """Subprocess environment with ffmpeg (and Python's scripts dir) on the PATH,
+    and PYTHONUTF8=1 so it doesn't break on cp1252 on Windows."""
+    env = dict(os.environ)
+    env["PYTHONUTF8"] = "1"
+    extra_paths = []
+    ff = find_ffmpeg_dir()
+    if ff:
+        extra_paths.append(ff)
+    else:
+        print("AVISO: ffmpeg não encontrado — vídeos podem vir SEM áudio. "
+              "Instale com: winget install Gyan.FFmpeg", file=sys.stderr)
+    extra_paths.append(str(Path(sys.executable).parent / "Scripts"))
+    env["PATH"] = os.pathsep.join(extra_paths + [env.get("PATH", "")])
+    return env
+
+
+def run_gallery_dl(profile: str, cookies: str, tab: str, rng: str | None,
+                   include_images: bool, env: dict) -> None:
+    archive = DOWNLOADS / profile / ".gdl-archive.sqlite3"
+    dest = DOWNLOADS / profile / tab
+    cmd = [
+        sys.executable, "-m", "gallery_dl",
+        "--cookies", cookies,
+        "--download-archive", str(archive),
+        "-o", "videos=true",
+        "-o", f"include={tab}",
+        "-D", str(dest),
+    ]
+    if not include_images:
+        cmd += ["--filter", "extension == 'mp4'"]
+    if rng:
+        cmd += ["--range", rng]
+    cmd.append(f"https://www.instagram.com/{profile}/")
+
+    print(f"-> [{tab}] gallery-dl ({'tudo' if include_images else 'só vídeo'})"
+          f"{' range=' + rng if rng else ''}")
+    result = subprocess.run(cmd, env=env)
+    if result.returncode != 0:
+        # gallery-dl may return !=0 over isolated items; don't abort the whole run.
+        print(f"AVISO: gallery-dl saiu com código {result.returncode} na aba '{tab}'",
+              file=sys.stderr)
+
+
 def infer_origin(mp4: Path, profile_dir: Path) -> str:
-    """Heurística: arquivos em subpasta provavelmente vêm de um Destaque."""
     rel = mp4.relative_to(profile_dir)
     if len(rel.parts) > 1:
-        return f"highlight:{rel.parts[0]}"
-    return "post/reel/story"
-
-
-def run_instaloader(profile: str, login: str, args: argparse.Namespace) -> None:
-    if shutil.which("instaloader") is None:
-        sys.exit("instaloader não encontrado. Instale com: pip install -U instaloader")
-
-    cmd = [
-        "instaloader",
-        "--no-pictures",
-        "--no-video-thumbnails",
-        "--login", login,
-        "--dirname-pattern", str(DOWNLOADS / "{profile}"),
-        "--request-timeout", "60",
-    ]
-    if not args.no_reels:
-        cmd.append("--reels")
-    if not args.no_stories:
-        cmd.append("--stories")
-    if not args.no_highlights:
-        cmd.append("--highlights")
-    if args.fast_update:
-        cmd.append("--fast-update")
-    cmd.append(profile)
-
-    print("→", " ".join(cmd))
-    subprocess.run(cmd, check=True)
+        return TAB_ORIGIN.get(rel.parts[0], rel.parts[0])
+    return "post"
 
 
 def sync_manifest(profile: str) -> None:
@@ -86,11 +146,15 @@ def sync_manifest(profile: str) -> None:
 
     data = load_manifest(profile)
     videos = data["videos"]
+    # Dedup by video id (file name): the same video can appear in
+    # more than one tab (e.g. a reel that's also in the feed). Records only the 1st occurrence.
+    seen_ids = {Path(k).stem for k in videos}
     added = 0
     for mp4 in sorted(profile_dir.rglob("*.mp4")):
-        key = mp4.relative_to(ROOT).as_posix()
-        if key in videos:
+        if mp4.stem in seen_ids:
             continue
+        seen_ids.add(mp4.stem)
+        key = mp4.relative_to(ROOT).as_posix()
         videos[key] = {
             "origem": infer_origin(mp4, profile_dir),
             "baixado_em": now_iso(),
@@ -107,22 +171,36 @@ def sync_manifest(profile: str) -> None:
 
 def main() -> None:
     p = argparse.ArgumentParser(
-        description="Baixa vídeos de um perfil do Instagram (incl. Em Destaque) e atualiza o manifest."
-    )
+        description="Baixa vídeos de um perfil do Instagram (incl. Em Destaque) via gallery-dl.")
     p.add_argument("profile", help="@perfil alvo (sem @)")
-    p.add_argument("--login", required=True, help="sua conta (use uma descartável)")
-    p.add_argument("--no-reels", action="store_true", help="não baixar a aba de reels")
-    p.add_argument("--no-stories", action="store_true", help="não baixar stories")
-    p.add_argument("--no-highlights", action="store_true", help="não baixar Em Destaque")
-    p.add_argument("--fast-update", action="store_true",
-                   help="para no primeiro já-baixado (retomada rápida)")
+    p.add_argument("--cookies", help="cookies.txt (Netscape) de uma sessão logada do IG")
+    p.add_argument("--tabs", default=",".join(DEFAULT_TABS),
+                   help=f"abas a baixar, separadas por vírgula (padrão: {','.join(DEFAULT_TABS)})")
+    p.add_argument("--range", dest="rng", default=None,
+                   help="limita itens por aba, ex.: 1-50 (útil pra testar)")
+    p.add_argument("--include-images", action="store_true",
+                   help="baixa também fotos (padrão: só vídeo)")
     p.add_argument("--skip-download", action="store_true",
-                   help="só re-sincroniza o manifest com os arquivos já em downloads/")
+                   help="só re-sincroniza o manifest com os .mp4 já em downloads/")
     args = p.parse_args()
 
     DOWNLOADS.mkdir(exist_ok=True)
+
     if not args.skip_download:
-        run_instaloader(args.profile, args.login, args)
+        if not args.cookies:
+            sys.exit("Faltou --cookies <cookies.txt>. Exporte os cookies do navegador "
+                     "(extensão 'Get cookies.txt LOCALLY') de uma sessão logada do IG.")
+        if not Path(args.cookies).exists():
+            sys.exit(f"cookies.txt não encontrado: {args.cookies}")
+        env = build_env()
+        tabs = [t.strip() for t in args.tabs.split(",") if t.strip()]
+        for tab in tabs:
+            if tab not in TAB_ORIGIN:
+                print(f"AVISO: aba desconhecida '{tab}', pulando", file=sys.stderr)
+                continue
+            run_gallery_dl(args.profile, args.cookies, tab, args.rng,
+                           args.include_images, env)
+
     sync_manifest(args.profile)
 
 

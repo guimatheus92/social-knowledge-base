@@ -1,14 +1,14 @@
 # Prompt: sintetizar OVERVIEW.md (resumão por tema)
 
-Objetivo: gerar/atualizar `notes/OVERVIEW.md` consolidando o aprendizado de **todas** as notas, agrupado por tema. Use **map-reduce** — não tente ler tudo de uma vez (são muitos vídeos).
+Objetivo: gerar/atualizar `notes/<perfil>/OVERVIEW.md` consolidando o aprendizado de **todas** as notas, agrupado por tema. Use **map-reduce** — não tente ler tudo de uma vez (são muitos vídeos).
 
 ## Passos
 
 1. **Map (coleta barata):** leia só o **frontmatter** de todas as `notes/**/*.md` (campos `temas`, `video`, `perfil`). Não leia o corpo ainda. Agrupe as notas por `tema`.
 2. **Reduce por tema:** para cada tema:
    - Leia os corpos das notas daquele tema. Se forem muitas, resuma em **lotes** (ex.: 20 por vez) e depois combine os resumos parciais.
-   - Produza 3-7 **aprendizados recorrentes** do tema, cada um com link para as notas-fonte: `[arquivo](notes/<perfil>/<arquivo>.md)`.
-3. **Montar `notes/OVERVIEW.md`:**
+   - Produza 3-7 **aprendizados recorrentes** do tema, cada um com link para as notas-fonte: `[arquivo](notes/<perfil>/videos/<arquivo>.md)`.
+3. **Montar `notes/<perfil>/OVERVIEW.md`:**
    - Topo: sumário com a lista de temas (links âncora) + contagem de vídeos processados.
    - Uma seção `## <tema>` por tema, com os aprendizados consolidados e links.
    - Seção final `## Lacunas / dúvidas` com o que ficou ambíguo ou contraditório entre vídeos.

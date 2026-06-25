@@ -5,12 +5,37 @@ audio/
 # Estado do RAG (regenerável)
 .rag/
 
-# Sessões / cookies do instaloader
+# Sessões / cookies (credenciais — NUNCA versionar)
 .instaloader
 *.session
 session-*
+*cookies*.txt
+*.cookies
 
 # Python
 .venv/
 __pycache__/
 *.pyc
+
+# App (Next.js) — build/deps
+app/node_modules/
+app/.next/
+app/out/
+app/.turbo/
+
+# Manifests SQLite (regeneráveis) — versiona só os .json de export
+manifests/*.db
+manifests/*.db-wal
+manifests/*.db-shm
+
+# OCR language data (pesado, re-baixável)
+*.traineddata
+
+# Volume de dados do Docker (downloads/manifests/cookies montados aqui)
+data/
+
+# Cache de build do TypeScript
+*.tsbuildinfo
+
+# Claude Code — configs locais da máquina (permissões)
+.claude/settings.local.json

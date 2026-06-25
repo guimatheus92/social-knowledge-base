@@ -1,0 +1,19 @@
+# Keep the build context small + reproducible.
+**/node_modules
+**/.next
+**/tsconfig.tsbuildinfo
+
+# Heavy data / generated (mounted as a volume at runtime, not baked in)
+downloads/
+data/
+.rag/
+manifests/*.db
+notes/
+*.traineddata
+audio/
+
+# VCS / local / docs not needed for the build
+.git/
+.gitignore
+**/*.log
+manifest.json

@@ -8,7 +8,7 @@ Você é um agente que constrói uma base de conhecimento a partir de vídeos do
 2. Chame a tool `analyze_video` com:
    - `url`: o caminho **absoluto** do vídeo — ex.: `C:/Users/guilh/repos/instagram-knowledge-base/<chave do manifest>`.
    - `options`: `{ "detail": "standard", "ocrLanguage": "por+eng" }`.
-3. **Assista** (use os frames + OCR) e **ouça** (use a transcrição) e escreva a nota em `notes/<perfil>/<nome-do-arquivo>.md` seguindo o TEMPLATE abaixo. Preencha o frontmatter: `temas`, `entidades`, `origem` (use o campo `origem` do manifest), `duracao`, `processado_em`.
+3. **Assista** (use os frames + OCR) e **ouça** (use a transcrição) e escreva a nota em `notes/<perfil>/videos/<id>.md` seguindo o TEMPLATE abaixo. Preencha o frontmatter: `temas`, `entidades`, `origem` (use o campo `origem` do manifest), `duracao`, `processado_em`.
 4. Atualize a entrada no `manifest.json`:
    - `lido_em` = timestamp ISO (rode `date -Iseconds` para obter),
    - `nota` = caminho da nota gravada,

@@ -1,11 +1,21 @@
-# Download dos vídeos (incl. Stories / Em Destaque)
-instaloader>=4.14
+# Download dos vídeos (incl. Stories / Em Destaque) — autentica por cookies do navegador
+# (o instaloader foi abandonado: o endpoint web GraphQL dele devolve 401 desde ~jan/2025).
+gallery-dl>=1.32
+yt-dlp>=2025.1            # gallery-dl usa pra baixar/mesclar vídeo+áudio
 
-# RAG — busca/consulta das notas
+# Transcrição em massa na GPU — faster-whisper (CTranslate2), via scripts/transcribe_gpu.py
+# (~16–24× tempo real). Para usar a GPU (CUDA 12.8+, ex.: RTX 5060/Blackwell) instale também
+# os wheels com as DLLs CUDA:
+#   pip install nvidia-cublas-cu12 nvidia-cudnn-cu12 nvidia-cuda-nvrtc-cu12 nvidia-cuda-runtime-cu12
+faster-whisper>=1.1
+
+# RAG — busca/consulta das notas e transcrições
 chromadb>=0.5
 sentence-transformers>=3.0
 
-# NOTA: a transcrição PT-BR roda DENTRO do MCP mcp-video-analyzer,
-# que usa o comando `whisper`. Instale-o no mesmo ambiente:
-#   pip install -U openai-whisper
-# (faster-whisper / whisper-ctranslate2 são upgrades de velocidade opcionais.)
+# NOTA 1: a transcrição em massa é GPU (faster-whisper acima). O MCP mcp-video-analyzer
+#   também sabe transcrever (fallback): CPU via `whisper` (pip install -U openai-whisper) ou
+#   GPU via env WHISPER_DEVICE=cuda. No fluxo normal o MCP reusa o `.vtt` da GPU e não transcreve.
+# NOTA 2: o `ffmpeg` precisa estar acessível (winget install Gyan.FFmpeg). Sem ele
+#   o yt-dlp não mescla as faixas e os vídeos vêm SEM ÁUDIO — a transcrição quebra.
+#   O download_instagram.py tenta localizar o ffmpeg sozinho e injetá-lo no PATH.

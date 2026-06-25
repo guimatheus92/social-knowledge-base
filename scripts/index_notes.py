@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Indexa as notas markdown num vetor local (Chroma) para consulta/RAG.
+"""Indexes the markdown notes into a local vector store (Chroma) for querying/RAG.
 
-Embeddings multilíngues (bons para português). Re-rodar só (re)indexa as notas
-cujo conteúdo mudou (compara hash).
+Multilingual embeddings (good for Portuguese). Re-running only (re)indexes the notes
+whose content changed (compares the hash).
 
-Uso:
+Usage:
     python scripts/index_notes.py
 """
 
@@ -21,7 +21,7 @@ NOTES = ROOT / "notes"
 DB = ROOT / ".rag"
 MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
-# Não indexar os arquivos de agregação (índice e resumão).
+# Don't index the aggregation files (index and overview).
 SKIP_NAMES = {"OVERVIEW.md", "README.md"}
 
 
@@ -37,7 +37,8 @@ def main() -> None:
 
     model = SentenceTransformer(MODEL_NAME)
     client = chromadb.PersistentClient(path=str(DB))
-    col = client.get_or_create_collection("notes")
+    # cosine (not the default L2): with normalized embeddings, score = 1 - dist stays readable
+    col = client.get_or_create_collection("notes", metadata={"hnsw:space": "cosine"})
 
     ids, docs, metas = [], [], []
     for f in files:
@@ -47,7 +48,7 @@ def main() -> None:
 
         existing = col.get(ids=[nid])
         if existing["ids"] and existing["metadatas"][0].get("digest") == digest:
-            continue  # já indexada e sem mudança
+            continue  # already indexed and unchanged
 
         ids.append(nid)
         docs.append(text)
@@ -57,9 +58,14 @@ def main() -> None:
         print("Tudo já indexado (nenhuma mudança).")
         return
 
-    embeddings = model.encode(docs, show_progress_bar=True, normalize_embeddings=True).tolist()
-    col.upsert(ids=ids, documents=docs, embeddings=embeddings, metadatas=metas)
-    print(f"Indexadas/atualizadas {len(ids)} notas em {DB}")
+    # Chroma caps the upsert at ~5,461 items per call -> index in batches.
+    BATCH = 5000
+    total = len(ids)
+    for i in range(0, total, BATCH):
+        sl = slice(i, i + BATCH)
+        emb = model.encode(docs[sl], normalize_embeddings=True, batch_size=128).tolist()
+        col.upsert(ids=ids[sl], documents=docs[sl], embeddings=emb, metadatas=metas[sl])
+    print(f"Indexadas/atualizadas {total} notas em {DB}")
 
 
 if __name__ == "__main__":

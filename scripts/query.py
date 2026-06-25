@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Consulta a base de conhecimento (RAG, recuperação).
+"""Query the knowledge base (RAG, retrieval).
 
-Imprime as notas mais relevantes para a pergunta, com o caminho para citar.
-Para uma resposta em prosa, passe esses trechos ao Opus/Claude Code.
+Prints the most relevant notes for the question, with the path for citation.
+For a prose answer, pass these excerpts to Opus/Claude Code.
 
-Uso:
-    python scripts/query.py "o que aprendi sobre tráfego pago?" [-k 5]
+Usage:
+    python scripts/query.py "what did I learn about paid traffic?" [-k 5]
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ def main() -> None:
 
     model = SentenceTransformer(MODEL_NAME)
     client = chromadb.PersistentClient(path=str(DB))
-    col = client.get_or_create_collection("notes")
+    col = client.get_or_create_collection("notes", metadata={"hnsw:space": "cosine"})
 
     q = model.encode([args.question], normalize_embeddings=True).tolist()
     res = col.query(query_embeddings=q, n_results=args.k)
@@ -47,9 +47,9 @@ def main() -> None:
 
     print(f"\nTop {len(docs)} notas para: {args.question}\n")
     for doc, meta, dist in zip(docs, metas, dists):
-        # distância cosseno (0 = idêntico) → score aproximado
+        # cosine distance (0 = identical) -> approximate score
         score = max(0.0, 1.0 - dist)
-        # pula o frontmatter YAML para mostrar um trecho útil
+        # skip the YAML frontmatter to show a useful excerpt
         body = doc.split("---", 2)[-1].strip() if doc.startswith("---") else doc
         excerpt = body[:400].strip()
         print(f"### {meta['path']}  (score {score:.2f})")

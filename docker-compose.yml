@@ -1,0 +1,21 @@
+# social-knowledge-base — `docker compose up` and open http://localhost:3000
+#
+# Put your cookies.txt (Netscape format, from a logged-in disposable account)
+# at ./data/cookies.txt — the UI auto-detects it. Downloads and the per-account
+# SQLite manifests persist under ./data on the host.
+services:
+  app:
+    build: .
+    image: social-knowledge-base
+    container_name: social-knowledge-base
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    environment:
+      SKB_ROOT: /data
+      PYTHON_BIN: python3
+    restart: unless-stopped
+    # --- Optional NVIDIA GPU (for in-container transcription) ---
+    # Requires the NVIDIA Container Toolkit on the host. Uncomment to enable:
+    # gpus: all
