@@ -1,16 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import type { JobStatus } from "@/lib/types";
-
-const LABELS: Record<string, string> = {
-  idle: "Parado",
-  queued: "Na fila",
-  running: "Baixando",
-  paused: "Pausado",
-  completed: "Concluído",
-  stopped: "Interrompido",
-  error: "Erro",
-};
+import { useT } from "@/i18n/I18nProvider";
 
 const STYLES: Record<string, string> = {
   idle: "bg-muted text-muted-foreground",
@@ -29,18 +20,24 @@ export function StatusPill({
   status?: JobStatus | "idle" | null;
   rateLimited?: boolean;
 }) {
+  const t = useT();
   if (rateLimited) {
     return (
       <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-400">
-        Rate-limited
+        {t("status.rateLimited")}
       </span>
     );
   }
   const s = status ?? "idle";
   return (
     <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", STYLES[s] ?? STYLES.idle)}>
-      <span className={cn("mr-1 inline-block size-1.5 rounded-full bg-current align-middle", s === "running" && "animate-pulse")} />
-      {LABELS[s] ?? s}
+      <span
+        className={cn(
+          "mr-1 inline-block size-1.5 rounded-full bg-current align-middle",
+          s === "running" && "animate-pulse",
+        )}
+      />
+      {t(`status.${s}`)}
     </span>
   );
 }

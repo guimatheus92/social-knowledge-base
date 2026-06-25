@@ -151,6 +151,16 @@
   animation: skb-shimmer 1.9s ease-in-out infinite;
 }
 
+/* Ambient drift for the hero media wall — each tile keeps its base offset
+   (--y0) and breathes gently around it. */
+@keyframes skb-drift {
+  0%, 100% { transform: translateY(var(--y0, 0px)); }
+  50% { transform: translateY(calc(var(--y0, 0px) + 14px)); }
+}
+.hero-tile {
+  animation: skb-drift 7s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-live, .animate-shimmer::after { animation: none; }
+  .animate-live, .animate-shimmer::after, .hero-tile { animation: none; }
 }

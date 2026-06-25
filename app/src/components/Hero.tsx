@@ -1,14 +1,15 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { formatBytes, formatNumber } from "@/lib/format";
 import type { AccountSummary } from "@/lib/types";
-import { useT } from "@/i18n/I18nProvider";
+import { useI18n } from "@/i18n/I18nProvider";
 
 // The signature element: a cinematic banner where the media itself is the
 // backdrop. A wall of vertical (9:16) tiles bleeds in from the right and
 // dissolves into the page; the display headline states what the library is for.
 export function Hero({ accounts }: { accounts: AccountSummary[] | undefined }) {
-  const t = useT();
+  const { t, locale } = useI18n();
   const list = accounts ?? [];
   const videos = list.reduce((n, a) => n + (a.counts.byMedia.video ?? 0), 0);
   const images = list.reduce((n, a) => n + (a.counts.byMedia.image ?? 0), 0);
@@ -45,8 +46,8 @@ export function Hero({ accounts }: { accounts: AccountSummary[] | undefined }) {
         {tints.map((tint, i) => (
           <div
             key={i}
-            className={`h-[78%] w-[14%] shrink-0 rounded-2xl bg-gradient-to-b ${tint} ring-1 ring-white/10`}
-            style={{ transform: `translateY(${i % 2 ? 16 : -10}px)` }}
+            className={`hero-tile h-[78%] w-[14%] shrink-0 rounded-2xl bg-gradient-to-b ${tint} ring-1 ring-white/10`}
+            style={{ "--y0": `${i % 2 ? 16 : -10}px`, animationDelay: `${i * 0.5}s` } as CSSProperties}
           />
         ))}
       </div>
@@ -66,8 +67,8 @@ export function Hero({ accounts }: { accounts: AccountSummary[] | undefined }) {
           {empty
             ? t("hero.empty")
             : t("hero.summary", {
-                videos: formatNumber(videos),
-                images: formatNumber(images),
+                videos: formatNumber(videos, locale),
+                images: formatNumber(images, locale),
                 size: formatBytes(bytes),
                 accounts: list.length,
               })}

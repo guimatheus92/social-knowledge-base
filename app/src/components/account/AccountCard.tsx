@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
 import type { MediaType } from "@/lib/types";
-import { useT } from "@/i18n/I18nProvider";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export function AccountCard({
   summary,
@@ -44,7 +44,7 @@ export function AccountCard({
   onCount: () => void;
   onMediaChange: (media: MediaType[]) => void;
 }) {
-  const t = useT();
+  const { t, locale } = useI18n();
   const status = snapshot?.status ?? summary.job?.status ?? "idle";
   const running = snapshot?.status === "running";
   const busy = status === "running" || status === "queued";
@@ -116,15 +116,15 @@ export function AccountCard({
 
         {counting ? (
           <span className="text-xs text-amber-400">
-            {t("card.counting", { n: formatNumber(snapshot?.discovered ?? 0) })}
+            {t("card.counting", { n: formatNumber(snapshot?.discovered ?? 0, locale) })}
           </span>
         ) : est != null ? (
           <span className="text-xs text-muted-foreground">
-            {t("card.profileEstimate", { n: formatNumber(est) })} ·{" "}
+            {t("card.profileEstimate", { n: formatNumber(est, locale) })} ·{" "}
             {remaining === 0 ? (
               <span className="text-emerald-400">{t("card.allDownloaded")}</span>
             ) : (
-              <span>{t("card.remaining", { n: formatNumber(remaining ?? 0) })}</span>
+              <span>{t("card.remaining", { n: formatNumber(remaining ?? 0, locale) })}</span>
             )}
           </span>
         ) : null}

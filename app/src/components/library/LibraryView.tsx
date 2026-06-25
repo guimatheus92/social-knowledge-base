@@ -6,9 +6,11 @@ import { SearchFilterBar } from "@/components/library/SearchFilterBar";
 import { LibraryGrid } from "@/components/library/LibraryGrid";
 import { useStats } from "@/hooks/useAccounts";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { ItemFilters } from "@/hooks/useItems";
 
 export function LibraryView({ account }: { account: string }) {
+  const { t, locale } = useI18n();
   const [filters, setFilters] = useState<ItemFilters>({ sort: "date" });
   const { data: stats } = useStats(account);
   const total = stats?.counts.total ?? 0;
@@ -19,15 +21,17 @@ export function LibraryView({ account }: { account: string }) {
         <Link
           href="/"
           className="rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          aria-label="Voltar"
+          aria-label={t("library.back")}
         >
           <ArrowLeft className="size-5" />
         </Link>
         <div>
-          <h1 className="text-lg font-semibold">
-            Biblioteca · <span className="text-primary">@{account}</span>
+          <h1 className="font-heading text-lg font-semibold">
+            {t("library.heading")} · <span className="text-primary">@{account}</span>
           </h1>
-          <p className="text-xs text-muted-foreground">{formatNumber(total)} itens na base</p>
+          <p className="text-xs text-muted-foreground">
+            {t("library.itemsInBase", { n: formatNumber(total, locale) })}
+          </p>
         </div>
       </header>
 
