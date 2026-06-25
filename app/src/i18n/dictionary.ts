@@ -11,6 +11,13 @@ export const messages = {
     "app.loadingAccounts": "Carregando contas…",
     "app.emptyState": "Nenhuma conta ainda. Clique em {action} para começar.",
 
+    "hero.eyebrowLive": "Baixando agora",
+    "hero.eyebrowIdle": "Sua biblioteca",
+    "hero.eyebrowEmpty": "Comece aqui",
+    "hero.title": "Tudo o que seus criadores ensinam — assistido, ouvido e buscável.",
+    "hero.summary": "{videos} vídeos · {images} imagens · {size} em disco · {accounts} contas",
+    "hero.empty": "Adicione uma conta para começar a construir sua base de conhecimento.",
+
     "common.cancel": "Cancelar",
     "common.dismiss": "Descartar e fechar",
 
@@ -165,6 +172,13 @@ export const messages = {
     "app.subtitle": "Download creators' videos and turn them into knowledge.",
     "app.loadingAccounts": "Loading accounts…",
     "app.emptyState": "No accounts yet. Click {action} to get started.",
+
+    "hero.eyebrowLive": "Downloading now",
+    "hero.eyebrowIdle": "Your library",
+    "hero.eyebrowEmpty": "Start here",
+    "hero.title": "Everything your creators teach — watched, heard, and searchable.",
+    "hero.summary": "{videos} videos · {images} images · {size} on disk · {accounts} accounts",
+    "hero.empty": "Add an account to start building your knowledge base.",
 
     "common.cancel": "Cancel",
     "common.dismiss": "Discard and close",

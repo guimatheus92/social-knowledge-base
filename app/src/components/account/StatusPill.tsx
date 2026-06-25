@@ -15,7 +15,7 @@ const LABELS: Record<string, string> = {
 const STYLES: Record<string, string> = {
   idle: "bg-muted text-muted-foreground",
   queued: "bg-amber-500/15 text-amber-400",
-  running: "bg-emerald-500/15 text-emerald-400",
+  running: "bg-coral/15 text-coral",
   paused: "bg-sky-500/15 text-sky-400",
   completed: "bg-emerald-500/15 text-emerald-400",
   stopped: "bg-zinc-500/15 text-zinc-400",
