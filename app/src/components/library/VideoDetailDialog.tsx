@@ -125,14 +125,14 @@ export function VideoDetailDialog({
                 )}
               </div>
 
-              {/* compact media line: thumbnail + size */}
-              <div className="flex items-center gap-3">
+              {/* media: centered thumbnail with the size as a caption */}
+              <div className="flex flex-col items-center gap-1.5">
                 {account && postId && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={`/api/accounts/${encodeURIComponent(account)}/items/${encodeURIComponent(postId)}/thumb`}
                     alt=""
-                    className="aspect-[9/16] w-20 shrink-0 rounded-lg object-cover ring-1 ring-border"
+                    className="aspect-[9/16] w-32 rounded-xl object-cover ring-1 ring-border"
                   />
                 )}
                 <span className="font-mono text-xs text-muted-foreground">
