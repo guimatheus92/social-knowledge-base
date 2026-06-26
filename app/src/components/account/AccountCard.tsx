@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { StatusPill } from "@/components/account/StatusPill";
 import { AccountAvatar } from "@/components/account/AccountAvatar";
+import { NotesControl } from "@/components/account/NotesControl";
 import { MediaCountBadges } from "@/components/account/MediaCountBadges";
 import { SizeMeter } from "@/components/account/SizeMeter";
 import { ElapsedTimer } from "@/components/account/ElapsedTimer";
@@ -167,6 +168,11 @@ export function AccountCard({
             <strong>{t("card.download")}</strong>
             {t("card.pickMediaHintAfter")}
           </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3 text-sm">
+          <span className="font-medium text-muted-foreground">{t("notes.label")}</span>
+          <NotesControl account={summary.account} />
         </div>
       </CardContent>
     </Card>

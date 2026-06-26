@@ -1,8 +1,8 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { FileText, Loader2, Play, ScrollText } from "lucide-react";
+import { Copy, FileText, Loader2, Play, ScrollText, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -30,10 +30,31 @@ export function VideoDetailDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useT();
+  const qc = useQueryClient();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["detail", account, postId],
     queryFn: () => api.videoDetail(account as string, postId as string),
     enabled: open && !!account && !!postId,
+  });
+  const { data: health } = useQuery({
+    queryKey: ["notes-health"],
+    queryFn: api.notesHealth,
+    staleTime: Infinity,
+    enabled: open,
+  });
+
+  const gen = useMutation({
+    mutationFn: () => api.generateNote(account as string, postId as string),
+    onSuccess: (r) => {
+      if (r.ok) {
+        qc.invalidateQueries({ queryKey: ["detail", account, postId] });
+        qc.invalidateQueries({ queryKey: ["accounts"] });
+        toast.success(t("detail.noteGenerated"));
+      } else {
+        toast.error(r.error || t("detail.error"));
+      }
+    },
+    onError: (e) => toast.error((e as Error).message),
   });
 
   async function openInPlayer() {
@@ -43,6 +64,13 @@ export function VideoDetailDialog({
     } catch (e) {
       toast.error((e as Error).message);
     }
+  }
+
+  function copyNotePath() {
+    navigator.clipboard
+      ?.writeText(`notes/${account}/videos/${postId}.md`)
+      .then(() => toast.success(t("detail.pathCopied")))
+      .catch(() => {});
   }
 
   const item = data?.item;
@@ -88,7 +116,9 @@ export function VideoDetailDialog({
                       <span className="font-mono text-foreground">{formatBytes(item.fileSize)}</span>
                     ) : null}
                     {item?.width && item?.height ? (
-                      <span>{item.width}×{item.height}</span>
+                      <span>
+                        {item.width}×{item.height}
+                      </span>
                     ) : null}
                   </div>
                   <div className="mt-auto flex flex-wrap gap-2">
@@ -96,21 +126,39 @@ export function VideoDetailDialog({
                       <Play />
                       {t("detail.openPlayer")}
                     </Button>
+                    {data.note && (
+                      <Button variant="outline" size="sm" onClick={copyNotePath}>
+                        <Copy />
+                        {t("detail.copyPath")}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {data.note && (
-                <section className="flex flex-col gap-2">
-                  <h3 className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    <FileText className="size-3.5" /> {t("detail.note")}
-                  </h3>
+              {/* note */}
+              <section className="flex flex-col gap-2">
+                <h3 className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  <FileText className="size-3.5" /> {t("detail.note")}
+                </h3>
+                {data.note ? (
                   <div className="md-body text-sm">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.note}</ReactMarkdown>
                   </div>
-                </section>
-              )}
+                ) : health?.available ? (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-sm text-muted-foreground">{t("detail.noNote")}</p>
+                    <Button size="sm" onClick={() => gen.mutate()} disabled={gen.isPending}>
+                      {gen.isPending ? <Loader2 className="animate-spin" /> : <Sparkles />}
+                      {gen.isPending ? t("detail.generating") : t("detail.generateNote")}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{t("detail.noClaudeCode")}</p>
+                )}
+              </section>
 
+              {/* transcript */}
               <section className="flex flex-col gap-2">
                 <h3 className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                   <ScrollText className="size-3.5" /> {t("detail.transcript")}

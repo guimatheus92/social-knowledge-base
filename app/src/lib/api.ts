@@ -1,5 +1,13 @@
 /** Client tipado da API (fetch). */
-import type { AccountSummary, AnalysisConfig, Counts, Item, JobSnapshot, SearchHit } from "@/lib/types";
+import type {
+  AccountSummary,
+  AnalysisConfig,
+  Counts,
+  Item,
+  JobSnapshot,
+  NotesJobStatus,
+  SearchHit,
+} from "@/lib/types";
 
 async function jget<T>(url: string): Promise<T> {
   const r = await fetch(url);
@@ -42,6 +50,12 @@ async function jput<T>(url: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`PUT ${url} → ${r.status}`);
+  return r.json() as Promise<T>;
+}
+
+async function jdel<T>(url: string): Promise<T> {
+  const r = await fetch(url, { method: "DELETE" });
+  if (!r.ok) throw new Error(`DELETE ${url} → ${r.status}`);
   return r.json() as Promise<T>;
 }
 
@@ -102,6 +116,17 @@ export const api = {
     ),
   search: (q: string, k = 10) =>
     jget<{ hits: SearchHit[]; error?: string }>(`/api/search?q=${encodeURIComponent(q)}&k=${k}`),
+  notesHealth: () => jget<{ available: boolean }>("/api/notes/health"),
+  generateNote: (account: string, postId: string) =>
+    jpost<{ ok: boolean; note?: string | null; error?: string }>(
+      `/api/accounts/${encodeURIComponent(account)}/items/${encodeURIComponent(postId)}/note`,
+    ),
+  startNotes: (account: string) =>
+    jpost<NotesJobStatus>(`/api/accounts/${encodeURIComponent(account)}/notes`),
+  notesStatus: (account: string) =>
+    jget<NotesJobStatus>(`/api/accounts/${encodeURIComponent(account)}/notes`),
+  stopNotes: (account: string) =>
+    jdel<NotesJobStatus>(`/api/accounts/${encodeURIComponent(account)}/notes`),
   getConfig: () => jget<AnalysisConfig>("/api/config"),
   setConfig: (cfg: AnalysisConfig) => jput<AnalysisConfig>("/api/config", cfg),
   disk: () => jget<{ downloaded: number; free: number; total: number }>("/api/disk"),

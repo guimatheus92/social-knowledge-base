@@ -130,6 +130,17 @@ export interface AccountSummary extends Account {
 /** SSE message: either an initial snapshot or a progress event. */
 export type StreamMessage = { t: "snapshot"; snapshot: JobSnapshot | null } | JobEvent;
 
+/** Progress of a per-account note-generation batch (Claude Code). */
+export interface NotesJobStatus {
+  account: string;
+  status: "idle" | "running" | "done" | "stopped" | "error";
+  total: number;
+  done: number;
+  errors: number;
+  current: string | null;
+  recentLog: string[];
+}
+
 /** A RAG search result (transcript or note chunk) mapped back to its source. */
 export interface SearchHit {
   path: string;
