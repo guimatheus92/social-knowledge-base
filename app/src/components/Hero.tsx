@@ -14,6 +14,8 @@ export function Hero({ accounts }: { accounts: AccountSummary[] | undefined }) {
   const videos = list.reduce((n, a) => n + (a.counts.byMedia.video ?? 0), 0);
   const images = list.reduce((n, a) => n + (a.counts.byMedia.image ?? 0), 0);
   const bytes = list.reduce((n, a) => n + (a.counts.bytesTotal ?? 0), 0);
+  // Distinct social networks present (Instagram, TikTok, …) — counted apart from profiles.
+  const networks = new Set(list.map((a) => a.network)).size;
   const downloading = list.some((a) => a.job?.status === "running");
   const empty = list.length === 0;
   const plural = (n: number, one: string, many: string) => t(n === 1 ? one : many);
@@ -75,6 +77,8 @@ export function Hero({ accounts }: { accounts: AccountSummary[] | undefined }) {
                 size: formatBytes(bytes),
                 accounts: formatNumber(list.length, locale),
                 aw: plural(list.length, "hero.wAccount", "hero.wAccounts"),
+                networks: formatNumber(networks, locale),
+                nw: plural(networks, "hero.wNetwork", "hero.wNetworks"),
               })}
         </p>
       </div>
