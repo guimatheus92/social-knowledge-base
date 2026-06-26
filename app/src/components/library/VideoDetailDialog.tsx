@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
-import { DEFAULT_NOTE_LANG, NOTE_LANGS } from "@/lib/languages";
+import { DEFAULT_NOTE_LANG, NOTE_LANGS, noteLangNative } from "@/lib/languages";
 import { formatBytes, formatDuration } from "@/lib/format";
 import { useT } from "@/i18n/I18nProvider";
 
@@ -50,7 +50,7 @@ function LangSelect({ value, onChange, label }: { value: string; onChange: (v: s
         render={
           <Select value={value} onValueChange={(v) => v && onChange(v)}>
             <SelectTrigger size="sm" className="w-[8.5rem]" aria-label={label}>
-              <SelectValue />
+              <SelectValue>{(v) => noteLangNative(String(v))}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {NOTE_LANGS.map((l) => (

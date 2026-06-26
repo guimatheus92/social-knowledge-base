@@ -86,7 +86,7 @@ export function AccountCard({
               render={
                 <Link
                   href={`/library/${encodeURIComponent(summary.account)}`}
-                  className="inline-flex h-9 items-center gap-2 rounded-md border border-input px-3 text-sm font-medium transition hover:bg-muted"
+                  className="inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-foreground outline-none transition hover:bg-white/[0.06] hover:text-foreground focus-visible:bg-white/[0.06] focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
                 >
                   <Images className="size-4" />
                   {t("card.library")}
@@ -104,7 +104,7 @@ export function AccountCard({
           <Tooltip>
             <TooltipTrigger
               render={
-                <Button variant="outline" onClick={onCount} disabled={busy}>
+                <Button variant="ghost" size="sm" onClick={onCount} disabled={busy}>
                   <Sigma className="size-4" />
                   {t("card.count")}
                 </Button>
@@ -148,7 +148,7 @@ export function AccountCard({
               <button
                 type="button"
                 onClick={openFolder}
-                className="group flex w-fit max-w-full items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+                className="group flex w-fit max-w-full items-center gap-1.5 rounded-sm text-xs text-muted-foreground outline-none transition hover:text-foreground focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
               >
                 <Folder className="size-3.5 shrink-0" />
                 <span className="truncate font-mono">{summary.savePath}</span>

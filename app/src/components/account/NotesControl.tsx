@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
-import { DEFAULT_NOTE_LANG, NOTE_LANGS } from "@/lib/languages";
+import { DEFAULT_NOTE_LANG, NOTE_LANGS, noteLangNative } from "@/lib/languages";
 import { useT } from "@/i18n/I18nProvider";
 
 /** Per-account "generate the missing notes" via headless Claude Code (polled progress). */
@@ -117,7 +117,7 @@ export function NotesControl({
           render={
             <Select value={lang} onValueChange={(v) => v && v !== lang && setLang.mutate(v)}>
               <SelectTrigger size="sm" className="w-[8.5rem]" aria-label={t("notes.language")}>
-                <SelectValue />
+                <SelectValue>{(v) => noteLangNative(String(v))}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {NOTE_LANGS.map((l) => (

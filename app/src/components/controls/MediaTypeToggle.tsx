@@ -45,7 +45,7 @@ export function MediaTypeToggle({
                   <ToggleGroupItem
                     value={v}
                     aria-label={label}
-                    className="gap-2 px-3 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground data-[pressed]:border-primary data-[pressed]:bg-primary data-[pressed]:text-primary-foreground"
+                    className="gap-2 px-3 aria-pressed:border-primary/45 aria-pressed:bg-primary/10 aria-pressed:text-foreground data-[pressed]:border-primary/45 data-[pressed]:bg-primary/10 data-[pressed]:text-foreground"
                   >
                     <Icon className="size-4" />
                     <span className="text-sm">{label}</span>

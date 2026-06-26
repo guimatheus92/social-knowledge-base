@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
-import { NOTE_LANGS } from "@/lib/languages";
+import { NOTE_LANGS, noteLangNative } from "@/lib/languages";
 import type { AnalysisConfig } from "@/lib/types";
 import { useT } from "@/i18n/I18nProvider";
 
@@ -82,7 +82,7 @@ export function AnalysisSettingsPanel() {
               <Label className="text-xs text-muted-foreground">{t("analysis.noteLanguage")}</Label>
               <Select value={cfg.noteLanguage} onValueChange={(v) => v && patch({ noteLanguage: v })}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>{(v) => noteLangNative(String(v))}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {NOTE_LANGS.map((l) => (

@@ -1,9 +1,10 @@
 # DESIGN.md — "Media Cinematic" theme
 
-> The app's visual system (`app/`). The source of truth for the tokens is
-> [`app/src/app/globals.css`](app/src/app/globals.css) (`@theme inline` +
-> `:root/.dark`); the fonts live in [`app/src/app/layout.tsx`](app/src/app/layout.tsx).
-> This doc explains **the why** and maps the mockup → app tokens.
+> The app's visual system (`app/`) — the **how it looks**. Strategy, users, and
+> principles (the **why**) live in [`PRODUCT.md`](PRODUCT.md). The source of truth
+> for the tokens is [`app/src/app/globals.css`](app/src/app/globals.css)
+> (`@theme inline` + `:root/.dark`); the fonts live in
+> [`app/src/app/layout.tsx`](app/src/app/layout.tsx). This doc maps the mockup → app tokens.
 
 ## Chosen direction
 

@@ -46,5 +46,9 @@ data/
 # Claude Code — machine-local config (permissions)
 .claude/settings.local.json
 
+# Impeccable design skill — local tooling (skill files + critique snapshots)
+.impeccable/
+.claude/skills/impeccable/
+
 # Design mockups (temporary — keep local while the UI isn't redone)
 /design-mockups/

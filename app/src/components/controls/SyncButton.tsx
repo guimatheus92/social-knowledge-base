@@ -49,7 +49,7 @@ export function SyncButton({
   }
 
   const trigger = (
-    <Button variant="outline" size="sm" disabled={disabled}>
+    <Button variant="ghost" size="sm" disabled={disabled}>
       <RefreshCw />
       {t("sync.button")}
     </Button>
