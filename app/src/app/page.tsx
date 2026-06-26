@@ -176,19 +176,21 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => setActiveNetwork(null)}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-muted-foreground transition hover:bg-white/5 hover:text-foreground"
+            className="inline-flex items-center gap-2.5 rounded-xl px-3 py-2 text-muted-foreground transition hover:bg-white/5 hover:text-foreground"
           >
-            <ChevronLeft className="size-4" />
+            <ChevronLeft className="size-6" />
             <span
-              className="grid size-5 place-items-center rounded-md text-white"
+              className="grid size-9 place-items-center rounded-xl text-white"
               style={{ background: networkMeta(activeNetwork).gradient }}
             >
               {(() => {
                 const Icon = networkMeta(activeNetwork).Icon;
-                return <Icon className="size-3" />;
+                return <Icon className="size-5" />;
               })()}
             </span>
-            <span className="font-medium text-foreground">{networkMeta(activeNetwork).label}</span>
+            <span className="font-heading text-xl font-semibold text-foreground">
+              {networkMeta(activeNetwork).label}
+            </span>
           </button>
 
           <LoginAccountPanel cookiesPath={cookiesPath} status={cookieStatus} onChange={updateCookies} />
