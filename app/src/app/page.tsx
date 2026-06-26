@@ -151,6 +151,7 @@ export default function DashboardPage() {
 
       {activeNetwork === null ? (
         <>
+          {presentNetworks.length > 0 && <BrandRule />}
           <section className="space-y-4">
             {isLoading && (
               <p className="text-sm text-muted-foreground">{t("app.loadingAccounts")}</p>
