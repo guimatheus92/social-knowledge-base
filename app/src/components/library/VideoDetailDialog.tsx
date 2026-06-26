@@ -101,49 +101,44 @@ export function VideoDetailDialog({
 
           {data && (
             <>
-              <div className="flex gap-4">
+              {/* actions — a full-width row at the top, so nothing floats next to the poster */}
+              <div className="flex flex-wrap gap-2">
+                {data.webUrl && (
+                  <Button
+                    size="sm"
+                    nativeButton={false}
+                    render={<a href={data.webUrl} target="_blank" rel="noreferrer noopener" />}
+                  >
+                    <ExternalLink />
+                    {t("detail.openInstagram")}
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={openInPlayer}>
+                  <Play />
+                  {t("detail.openPlayer")}
+                </Button>
+                {data.note && (
+                  <Button variant="outline" size="sm" onClick={copyNotePath}>
+                    <Copy />
+                    {t("detail.copyPath")}
+                  </Button>
+                )}
+              </div>
+
+              {/* compact media line: thumbnail + size */}
+              <div className="flex items-center gap-3">
                 {account && postId && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={`/api/accounts/${encodeURIComponent(account)}/items/${encodeURIComponent(postId)}/thumb`}
                     alt=""
-                    className="aspect-[9/16] w-24 shrink-0 rounded-xl object-cover ring-1 ring-border"
+                    className="aspect-[9/16] w-20 shrink-0 rounded-lg object-cover ring-1 ring-border"
                   />
                 )}
-                <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    {item?.fileSize ? (
-                      <span className="font-mono text-foreground">{formatBytes(item.fileSize)}</span>
-                    ) : null}
-                    {item?.width && item?.height ? (
-                      <span>
-                        {item.width}×{item.height}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {data.webUrl && (
-                      <Button
-                        size="sm"
-                        nativeButton={false}
-                        render={<a href={data.webUrl} target="_blank" rel="noreferrer noopener" />}
-                      >
-                        <ExternalLink />
-                        {t("detail.openInstagram")}
-                      </Button>
-                    )}
-                    <Button variant="outline" size="sm" onClick={openInPlayer}>
-                      <Play />
-                      {t("detail.openPlayer")}
-                    </Button>
-                    {data.note && (
-                      <Button variant="outline" size="sm" onClick={copyNotePath}>
-                        <Copy />
-                        {t("detail.copyPath")}
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {item?.fileSize ? formatBytes(item.fileSize) : ""}
+                  {item?.width && item?.height ? ` · ${item.width}×${item.height}` : ""}
+                </span>
               </div>
 
               {/* note */}
