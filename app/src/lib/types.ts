@@ -153,6 +153,27 @@ export interface NotesJobStatus {
   recentLog: string[];
 }
 
+/** Progress of a cross-account bulk note-generation run (accounts processed sequentially). */
+export interface BulkNotesStatus {
+  status: "idle" | "running" | "done" | "stopped" | "error";
+  /** Accounts in the run (only those that had unnoted videos at start). */
+  accounts: string[];
+  /** The account currently being processed, or null. */
+  currentAccount: string | null;
+  accountsDone: number;
+  totalAccounts: number;
+  /** Videos noted / to note, summed across all accounts in the run. */
+  done: number;
+  total: number;
+  errors: number;
+}
+
+/** A downloaded item tagged with its owning profile + network (the global Gallery). */
+export interface GalleryItem extends Item {
+  account: string;
+  network: string;
+}
+
 /** A RAG search result (transcript or note chunk) mapped back to its source. */
 export interface SearchHit {
   path: string;

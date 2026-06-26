@@ -2,7 +2,9 @@
 import type {
   AccountSummary,
   AnalysisConfig,
+  BulkNotesStatus,
   Counts,
+  GalleryItem,
   Item,
   JobSnapshot,
   NoteMeta,
@@ -88,6 +90,7 @@ export const api = {
     ),
   items: (account: string, qs: string) =>
     jget<{ items: Item[] }>(`/api/accounts/${encodeURIComponent(account)}/items?${qs}`),
+  gallery: (qs: string) => jget<{ items: GalleryItem[]; total: number }>(`/api/gallery?${qs}`),
   startJob: (body: StartJobBody) => jpost<JobSnapshot>("/api/jobs", body),
   startSingle: (body: { url: string; cookiesPath: string; media?: string[] }) =>
     jpost<JobSnapshot>("/api/jobs/single", body),
@@ -136,6 +139,9 @@ export const api = {
     jget<NotesJobStatus>(`/api/accounts/${encodeURIComponent(account)}/notes`),
   stopNotes: (account: string) =>
     jdel<NotesJobStatus>(`/api/accounts/${encodeURIComponent(account)}/notes`),
+  startBulkNotes: (accounts: string[]) => jpost<BulkNotesStatus>("/api/notes/bulk", { accounts }),
+  bulkNotesStatus: () => jget<BulkNotesStatus>("/api/notes/bulk"),
+  stopBulkNotes: () => jdel<BulkNotesStatus>("/api/notes/bulk"),
   getConfig: () => jget<AnalysisConfig>("/api/config"),
   setConfig: (cfg: AnalysisConfig) => jput<AnalysisConfig>("/api/config", cfg),
   disk: () => jget<{ downloaded: number; free: number; total: number }>("/api/disk"),

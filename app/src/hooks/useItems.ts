@@ -1,5 +1,5 @@
 "use client";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
 export const ITEMS_LIMIT = 36;
@@ -15,6 +15,7 @@ export interface ItemFilters {
 export function useItems(account: string, f: ItemFilters) {
   return useInfiniteQuery({
     queryKey: ["items", account, f],
+    placeholderData: keepPreviousData,
     initialPageParam: 0,
     queryFn: ({ pageParam }) => {
       const sp = new URLSearchParams();

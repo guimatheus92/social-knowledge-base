@@ -15,10 +15,13 @@ export function ItemTile({
   account,
   item,
   onSelect,
+  handle,
 }: {
   account: string;
   item: Item;
   onSelect: () => void;
+  /** When set (the global Gallery), shows which profile this media belongs to. */
+  handle?: string;
 }) {
   const t = useT();
   const [broken, setBroken] = useState(false);
@@ -48,13 +51,20 @@ export function ItemTile({
       {/* bottom scrim so the controls stay legible over any thumbnail */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/75 to-transparent" />
 
-      {/* origin (left) + file size (right) */}
-      <div className="absolute inset-x-0 top-0 flex items-center justify-between p-2">
-        <span className="rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-          {t(`origin.${item.origin}`)}
+      {/* [@handle] origin (left) + file size (right) */}
+      <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-1 p-2">
+        <span className="flex min-w-0 items-center gap-1">
+          {handle ? (
+            <span className="truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+              @{handle}
+            </span>
+          ) : null}
+          <span className="shrink-0 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+            {t(`origin.${item.origin}`)}
+          </span>
         </span>
         {item.fileSize ? (
-          <span className="rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-[10px] text-white/90 backdrop-blur-sm">
+          <span className="shrink-0 rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-[10px] text-white/90 backdrop-blur-sm">
             {formatBytes(item.fileSize)}
           </span>
         ) : null}

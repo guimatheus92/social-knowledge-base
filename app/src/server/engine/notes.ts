@@ -14,7 +14,7 @@ import { ROOT, assertSafeSegment } from "@/server/paths";
 import * as repo from "@/server/db/repository";
 import { getAnalysisConfig } from "@/server/config/mcp";
 import { DEFAULT_NOTE_LANG, noteLangEnglish } from "@/lib/languages";
-import type { NotesJobStatus } from "@/lib/types";
+import type { BulkNotesStatus, NotesJobStatus } from "@/lib/types";
 
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
 
@@ -177,6 +177,8 @@ interface NotesJob extends NotesJobStatus {
 /** Sequential per-account note runner (one Claude session at a time). Singleton across HMR. */
 class NotesRunner {
   private jobs = new Map<string, NotesJob>();
+  /** A cross-account bulk run (accounts processed one at a time). */
+  private bulk: (BulkNotesStatus & { abort: AbortController }) | null = null;
 
   private toStatus(j: NotesJob): NotesJobStatus {
     return {
@@ -254,8 +256,91 @@ class NotesRunner {
     if (j.status === "running") j.status = "stopped";
     return this.toStatus(j);
   }
+
+  getBulk(): BulkNotesStatus | null {
+    const b = this.bulk;
+    if (!b) return null;
+    return {
+      status: b.status,
+      accounts: b.accounts,
+      currentAccount: b.currentAccount,
+      accountsDone: b.accountsDone,
+      totalAccounts: b.totalAccounts,
+      done: b.done,
+      total: b.total,
+      errors: b.errors,
+    };
+  }
+
+  /** Generate the missing notes for several accounts, processed one account at a time. */
+  startBulk(accounts: string[]): BulkNotesStatus {
+    if (this.bulk?.status === "running") return this.getBulk()!;
+    const work = accounts
+      .map((a) => {
+        assertSafeSegment(a);
+        return { account: a, postIds: this.missing(a).map((i) => i.postId) };
+      })
+      .filter((w) => w.postIds.length > 0);
+    const abort = new AbortController();
+    this.bulk = {
+      status: "running",
+      accounts: work.map((w) => w.account),
+      currentAccount: null,
+      accountsDone: 0,
+      totalAccounts: work.length,
+      done: 0,
+      total: work.reduce((n, w) => n + w.postIds.length, 0),
+      errors: 0,
+      abort,
+    };
+    void this.runBulk(work, abort);
+    return this.getBulk()!;
+  }
+
+  private async runBulk(
+    work: { account: string; postIds: string[] }[],
+    abort: AbortController,
+  ): Promise<void> {
+    const bulk = this.bulk!;
+    for (const w of work) {
+      if (abort.signal.aborted) break;
+      bulk.currentAccount = w.account;
+      // A per-account job so that account's card shows live progress; shares the bulk abort.
+      const job: NotesJob = {
+        account: w.account,
+        status: "running",
+        total: w.postIds.length,
+        done: 0,
+        errors: 0,
+        current: null,
+        recentLog: [],
+        abort,
+      };
+      this.jobs.set(w.account, job);
+      await this.run(job, w.postIds);
+      bulk.done += job.done;
+      bulk.errors += job.errors;
+      bulk.accountsDone += 1;
+    }
+    bulk.currentAccount = null;
+    bulk.status = abort.signal.aborted
+      ? "stopped"
+      : bulk.errors > 0 && bulk.done === 0
+        ? "error"
+        : "done";
+  }
+
+  stopBulk(): BulkNotesStatus | null {
+    if (!this.bulk) return null;
+    this.bulk.abort.abort();
+    if (this.bulk.status === "running") this.bulk.status = "stopped";
+    return this.getBulk();
+  }
 }
 
-const globalRef = globalThis as unknown as { __skbNotesRunner?: NotesRunner };
+// Singleton across HMR. The key carries a version suffix so that adding methods
+// to NotesRunner (e.g. the bulk runner) recreates the instance in dev instead of
+// reusing a stale one cached from an older class shape.
+const globalRef = globalThis as unknown as { __skbNotesRunnerV2?: NotesRunner };
 export const notesRunner: NotesRunner =
-  globalRef.__skbNotesRunner ?? (globalRef.__skbNotesRunner = new NotesRunner());
+  globalRef.__skbNotesRunnerV2 ?? (globalRef.__skbNotesRunnerV2 = new NotesRunner());

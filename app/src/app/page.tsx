@@ -3,13 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Aperture, ChevronLeft, Search } from "lucide-react";
+import { Aperture, ChevronLeft, Images, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandRule } from "@/components/BrandRule";
 import { useAccounts } from "@/hooks/useAccounts";
 import { api } from "@/lib/api";
 import { ConnectedAccountCard } from "@/components/account/ConnectedAccountCard";
 import { NetworkCard } from "@/components/account/NetworkCard";
+import { NetworkBulkBar } from "@/components/account/NetworkBulkBar";
 import { LoginAccountPanel } from "@/components/LoginAccountPanel";
 import { AddAccountDialog } from "@/components/AddAccountDialog";
 import { DownloadByLinkDialog } from "@/components/DownloadByLinkDialog";
@@ -124,10 +125,10 @@ export default function DashboardPage() {
   const activeAccounts = activeNetwork ? byNetwork.get(activeNetwork) ?? [] : [];
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <header className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-coral to-magenta text-white shadow-[0_10px_28px_-10px_var(--coral)]">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-coral to-magenta text-white shadow-[0_10px_28px_-10px_var(--coral)]">
             <Aperture className="size-5" />
           </div>
           <div>
@@ -135,8 +136,12 @@ export default function DashboardPage() {
             <p className="text-sm text-muted-foreground">{t("app.subtitle")}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <LanguageToggle />
+          <Button variant="outline" nativeButton={false} render={<Link href="/gallery" />}>
+            <Images />
+            {t("gallery.trigger")}
+          </Button>
           <Button variant="outline" nativeButton={false} render={<Link href="/search" />}>
             <Search />
             {t("search.trigger")}
@@ -202,6 +207,10 @@ export default function DashboardPage() {
           </button>
 
           <LoginAccountPanel cookiesPath={cookiesPath} status={cookieStatus} onChange={updateCookies} />
+
+          {activeAccounts.length >= 2 && (
+            <NetworkBulkBar accounts={activeAccounts} cookiesPath={cookiesPath} />
+          )}
 
           <section className="space-y-4">
             {activeAccounts.map((a) => (
