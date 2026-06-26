@@ -7,6 +7,21 @@
  * first; TikTok comes through the same gallery-dl. YouTube (yt-dlp) will be a
  * provider with its own engine in a later phase.
  */
+const SHORTCODE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+/** Instagram media pk (the numeric file stem) → the base64 shortcode used in URLs. */
+function pkToShortcode(pk: string): string | null {
+  if (!/^\d+$/.test(pk)) return null;
+  const base = BigInt(64);
+  let n = BigInt(pk);
+  let s = "";
+  while (n > BigInt(0)) {
+    s = SHORTCODE_ALPHABET[Number(n % base)] + s;
+    n = n / base;
+  }
+  return s || null;
+}
+
 export interface SourceProvider {
   /** stable id (becomes the account's `network` column). */
   id: string;
@@ -23,6 +38,8 @@ export interface SourceProvider {
   matchesUrl(url: string): boolean;
   /** Derives the tab/folder from a media URL (for download-by-link). */
   kindFromUrl(url: string): string;
+  /** Public deep-link back to the post on the network, or null if not resolvable. */
+  webUrl(account: string, postId: string, origin: string): string | null;
 }
 
 const instagram: SourceProvider = {
@@ -35,6 +52,11 @@ const instagram: SourceProvider = {
   matchesUrl: (u) => /(^|\.)instagram\.com\//i.test(u),
   kindFromUrl: (u) =>
     /\/reels?\//i.test(u) ? "reels" : /\/stories\//i.test(u) ? "stories" : "posts",
+  webUrl: (_account, postId, origin) => {
+    if (origin === "story") return null; // ephemeral — no stable public URL
+    const sc = pkToShortcode(postId);
+    return sc ? `https://www.instagram.com/${origin === "reel" ? "reel" : "p"}/${sc}/` : null;
+  },
 };
 
 const tiktok: SourceProvider = {
@@ -46,6 +68,7 @@ const tiktok: SourceProvider = {
   kindArgs: () => [], // gallery-dl downloads the whole profile; no "tabs"
   matchesUrl: (u) => /(^|\.)tiktok\.com\//i.test(u),
   kindFromUrl: () => "videos",
+  webUrl: (account, postId) => `https://www.tiktok.com/@${account.replace(/^@/, "")}/video/${postId}`,
 };
 
 const REGISTRY: Record<string, SourceProvider> = { instagram, tiktok };

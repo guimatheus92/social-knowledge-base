@@ -2,7 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Copy, FileText, Loader2, Play, ScrollText, Sparkles } from "lucide-react";
+import { Copy, ExternalLink, FileText, Loader2, Play, ScrollText, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -121,8 +121,18 @@ export function VideoDetailDialog({
                       </span>
                     ) : null}
                   </div>
-                  <div className="mt-auto flex flex-wrap gap-2">
-                    <Button size="sm" onClick={openInPlayer}>
+                  <div className="flex flex-wrap gap-2">
+                    {data.webUrl && (
+                      <Button
+                        size="sm"
+                        nativeButton={false}
+                        render={<a href={data.webUrl} target="_blank" rel="noreferrer noopener" />}
+                      >
+                        <ExternalLink />
+                        {t("detail.openInstagram")}
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" onClick={openInPlayer}>
                       <Play />
                       {t("detail.openPlayer")}
                     </Button>

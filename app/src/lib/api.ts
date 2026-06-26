@@ -111,7 +111,7 @@ export const api = {
   openFile: (account: string, postId: string) =>
     jpost<{ ok: boolean }>("/api/fs/open-file", { account, postId }),
   videoDetail: (account: string, postId: string) =>
-    jget<{ item: Item; note: string | null; transcript: string | null }>(
+    jget<{ item: Item; note: string | null; transcript: string | null; webUrl?: string | null }>(
       `/api/accounts/${encodeURIComponent(account)}/items/${encodeURIComponent(postId)}/detail`,
     ),
   search: (q: string, k = 10) =>

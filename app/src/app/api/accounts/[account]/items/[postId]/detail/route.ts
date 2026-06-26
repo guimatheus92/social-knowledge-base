@@ -1,5 +1,6 @@
 import * as repo from "@/server/db/repository";
 import { readVideoKnowledge } from "@/server/engine/knowledge";
+import { getProvider } from "@/server/providers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,5 +14,7 @@ export async function GET(
   const item = repo.getItem(account, postId);
   if (!item) return Response.json({ error: "item não encontrado" }, { status: 404 });
   const { note, transcript } = await readVideoKnowledge(account, postId);
-  return Response.json({ item, note, transcript });
+  const acc = repo.getAccount(account);
+  const webUrl = acc ? getProvider(acc.network).webUrl(account, postId, item.origin) : null;
+  return Response.json({ item, note, transcript, webUrl });
 }
