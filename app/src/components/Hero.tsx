@@ -16,6 +16,7 @@ export function Hero({ accounts }: { accounts: AccountSummary[] | undefined }) {
   const bytes = list.reduce((n, a) => n + (a.counts.bytesTotal ?? 0), 0);
   const downloading = list.some((a) => a.job?.status === "running");
   const empty = list.length === 0;
+  const plural = (n: number, one: string, many: string) => t(n === 1 ? one : many);
 
   const eyebrow = empty
     ? t("hero.eyebrowEmpty")
@@ -68,9 +69,12 @@ export function Hero({ accounts }: { accounts: AccountSummary[] | undefined }) {
             ? t("hero.empty")
             : t("hero.summary", {
                 videos: formatNumber(videos, locale),
+                vw: plural(videos, "hero.wVideo", "hero.wVideos"),
                 images: formatNumber(images, locale),
+                iw: plural(images, "hero.wImage", "hero.wImages"),
                 size: formatBytes(bytes),
-                accounts: list.length,
+                accounts: formatNumber(list.length, locale),
+                aw: plural(list.length, "hero.wAccount", "hero.wAccounts"),
               })}
         </p>
       </div>

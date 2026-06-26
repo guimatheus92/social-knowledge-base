@@ -25,6 +25,7 @@ const NewAccount = z.object({
   cookiesPath: z.string().optional(),
   media: z.array(z.enum(["image", "video"])).min(1).optional(),
   tabs: z.array(z.enum(["highlights", "reels", "stories", "posts"])).optional(),
+  network: z.string().optional(),
 });
 
 export async function POST(req: Request): Promise<Response> {
@@ -40,6 +41,7 @@ export async function POST(req: Request): Promise<Response> {
     cookiesPath: body.cookiesPath ?? null,
     mediaTypes: body.media,
     tabs: body.tabs,
+    network: body.network,
   });
   return Response.json({
     ...repo.getAccount(body.account),

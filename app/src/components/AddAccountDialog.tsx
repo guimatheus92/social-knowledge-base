@@ -22,6 +22,8 @@ import { TabSelector } from "@/components/controls/TabSelector";
 import { SavePathPicker } from "@/components/controls/SavePathPicker";
 import { useT } from "@/i18n/I18nProvider";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { NETWORKS, DEFAULT_NETWORK } from "@/lib/networks";
 import type { MediaType, Tab } from "@/lib/types";
 
 const DEFAULT_MEDIA: MediaType[] = ["video"];
@@ -41,7 +43,13 @@ function joinPath(base: string, name: string) {
 export function AddAccountDialog({
   onAdd,
 }: {
-  onAdd: (data: { account: string; savePath: string; media: MediaType[]; tabs: Tab[] }) => void;
+  onAdd: (data: {
+    account: string;
+    savePath: string;
+    media: MediaType[];
+    tabs: Tab[];
+    network: string;
+  }) => void;
 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -51,6 +59,7 @@ export function AddAccountDialog({
   const [savePathTouched, setSavePathTouched] = useState(false);
   const [media, setMedia] = useState<MediaType[]>(DEFAULT_MEDIA);
   const [tabs, setTabs] = useState<Tab[]>(DEFAULT_TABS);
+  const [network, setNetwork] = useState(DEFAULT_NETWORK);
 
   // Default = pasta de downloads existente (absoluta).
   useEffect(() => {
@@ -72,6 +81,7 @@ export function AddAccountDialog({
     setSavePathTouched(false);
     setMedia(DEFAULT_MEDIA);
     setTabs(DEFAULT_TABS);
+    setNetwork(DEFAULT_NETWORK);
   }
 
   function handleOpenChange(next: boolean) {
@@ -81,7 +91,7 @@ export function AddAccountDialog({
 
   function submit() {
     if (!canAdd) return;
-    onAdd({ account: handle, savePath: effectiveSavePath, media, tabs });
+    onAdd({ account: handle, savePath: effectiveSavePath, media, tabs, network });
     handleOpenChange(false);
   }
 
@@ -110,6 +120,44 @@ export function AddAccountDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">{t("addAccount.networkLabel")}</Label>
+            <div className="flex flex-wrap gap-2">
+              {NETWORKS.map((n) => {
+                const Icon = n.Icon;
+                const active = network === n.id;
+                return (
+                  <button
+                    key={n.id}
+                    type="button"
+                    disabled={!n.available}
+                    onClick={() => setNetwork(n.id)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition",
+                      active
+                        ? "border-coral/60 bg-coral/10 text-foreground"
+                        : "border-border text-muted-foreground hover:bg-white/5",
+                      !n.available && "cursor-not-allowed opacity-50 hover:bg-transparent",
+                    )}
+                  >
+                    <span
+                      className="grid size-5 place-items-center rounded-md"
+                      style={{ background: n.gradient }}
+                    >
+                      <Icon className="size-3 text-white" />
+                    </span>
+                    {n.label}
+                    {!n.available && (
+                      <span className="text-[10px] tracking-wide uppercase opacity-70">
+                        {t("network.comingSoon")}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="add-account-handle" className="text-xs text-muted-foreground">
               {t("addAccount.handleLabel")}

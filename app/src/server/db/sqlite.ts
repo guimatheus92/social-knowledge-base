@@ -18,11 +18,17 @@ export function openDb(account: string): DatabaseSync {
   mkdirSync(MANIFESTS, { recursive: true });
   const db = new DatabaseSync(dbPath(account));
   db.exec(SCHEMA);
-  // Lightweight migration: estimated-total column (gallery-dl --simulate).
-  try {
-    db.exec("ALTER TABLE account ADD COLUMN estimated_total INTEGER");
-  } catch {
-    /* column already exists */
+  // Idempotent column migrations: upgrade manifests created before a column
+  // existed. New databases already get these from SCHEMA above.
+  for (const col of [
+    "estimated_total INTEGER",
+    "network TEXT NOT NULL DEFAULT 'instagram'",
+  ]) {
+    try {
+      db.exec(`ALTER TABLE account ADD COLUMN ${col}`);
+    } catch {
+      /* column already exists */
+    }
   }
   cache.set(account, db);
   return db;

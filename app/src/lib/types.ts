@@ -33,6 +33,8 @@ export interface Account {
   mediaTypes: MediaType[];
   tabs: Tab[];
   parallelism: number;
+  /** Source network provider id (instagram, tiktok, …). */
+  network: string;
   elapsedSeconds: number;
   lastSyncedAt: string | null;
   /** Estimated total of items in the profile (via "Count" / gallery-dl --simulate). */

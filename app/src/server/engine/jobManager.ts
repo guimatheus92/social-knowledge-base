@@ -182,6 +182,8 @@ class JobManager {
         savePath: join(DOWNLOADS, account),
         cookiesPath: opts.cookiesPath,
         mediaTypes: opts.media ?? ["video"],
+        tabs: [tab],
+        network: providerId,
       });
     }
     return this.start({

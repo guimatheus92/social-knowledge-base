@@ -61,6 +61,7 @@ export interface NewAccountBody {
   cookiesPath?: string;
   media?: string[];
   tabs?: string[];
+  network?: string;
 }
 
 export const api = {
@@ -88,5 +89,4 @@ export const api = {
   getConfig: () => jget<AnalysisConfig>("/api/config"),
   setConfig: (cfg: AnalysisConfig) => jput<AnalysisConfig>("/api/config", cfg),
   disk: () => jget<{ downloaded: number; free: number; total: number }>("/api/disk"),
-  clearThumbs: () => jpost<{ ok: boolean; cleared: number }>("/api/disk/clear-thumbs"),
 };

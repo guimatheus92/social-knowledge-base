@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { StatusPill } from "@/components/account/StatusPill";
+import { AccountAvatar } from "@/components/account/AccountAvatar";
 import { MediaCountBadges } from "@/components/account/MediaCountBadges";
 import { SizeMeter } from "@/components/account/SizeMeter";
 import { ElapsedTimer } from "@/components/account/ElapsedTimer";
@@ -24,6 +25,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
+import { networkMeta } from "@/lib/networks";
 import type { MediaType } from "@/lib/types";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -63,9 +65,17 @@ export function AccountCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className="truncate">@{summary.account}</span>
-          <StatusPill status={status} rateLimited={snapshot?.rateLimited} />
+        <CardTitle className="flex min-w-0 items-center gap-3">
+          <AccountAvatar account={summary.account} network={summary.network} />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="truncate font-heading">@{summary.account}</span>
+              <StatusPill status={status} rateLimited={snapshot?.rateLimited} />
+            </div>
+            <span className="text-xs font-normal text-muted-foreground">
+              {networkMeta(summary.network).label}
+            </span>
+          </div>
         </CardTitle>
         <CardAction className="flex items-center gap-1.5">
           <Tooltip>

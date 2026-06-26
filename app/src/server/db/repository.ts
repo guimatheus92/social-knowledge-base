@@ -50,6 +50,7 @@ function rowToAccount(r: any): Account {
     mediaTypes: String(r.media_types).split(",").filter(Boolean) as MediaType[],
     tabs: String(r.tabs).split(",").filter(Boolean) as Tab[],
     parallelism: num(r.parallelism),
+    network: r.network ?? "instagram",
     elapsedSeconds: num(r.elapsed_seconds),
     lastSyncedAt: r.last_synced_at ?? null,
     estimatedTotal: r.estimated_total == null ? null : num(r.estimated_total),
@@ -77,14 +78,17 @@ export interface AccountInput {
   mediaTypes?: MediaType[];
   tabs?: Tab[];
   parallelism?: number;
+  /** Source network provider id; set once at creation, defaults to instagram. */
+  network?: string;
 }
 
 export function upsertAccount(a: AccountInput): void {
   const db = openDb(a.account);
   const now = new Date().toISOString();
+  // `network` is identity: set once at creation, never overwritten on conflict.
   db.prepare(
-    `INSERT INTO account (account, save_path, cookies_path, media_types, tabs, parallelism, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?)
+    `INSERT INTO account (account, save_path, cookies_path, media_types, tabs, parallelism, network, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?)
      ON CONFLICT(account) DO UPDATE SET
        save_path=excluded.save_path,
        cookies_path=COALESCE(excluded.cookies_path, account.cookies_path),
@@ -99,6 +103,7 @@ export function upsertAccount(a: AccountInput): void {
     (a.mediaTypes ?? ["video"]).join(","),
     (a.tabs ?? ["highlights", "reels", "stories"]).join(","),
     a.parallelism ?? 2,
+    a.network ?? "instagram",
     now,
     now,
   );
