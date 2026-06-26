@@ -43,7 +43,7 @@ Baixar TODOS os vídeos de uma conta (incluindo "Em Destaque"), analisar cada um
 
 ## Setup
 
-- `pip install -r requirements.txt`. **Transcrição em massa = GPU:** `faster-whisper` + wheels `nvidia-*-cu12` (CUDA 12.8+ p/ Blackwell/RTX 5060). O `scripts/transcribe_gpu.py` injeta as DLLs CUDA via `os.add_dll_directory` (senão dá `cublas64_12.dll cannot be loaded`).
+- `pip install -r requirements.txt`. **Transcrição em massa:** `faster-whisper` — usa **GPU/CUDA se disponível** (wheels `nvidia-*-cu12`, CUDA 12.8+ p/ Blackwell/RTX 5060; no Windows com GPU injeta as DLLs CUDA via `os.add_dll_directory`, senão `cublas64_12.dll cannot be loaded`) e **cai pra CPU** automaticamente se não houver GPU (mais lento; em CPU considere `--model small`).
 - Buildar o MCP: em `../mcp-video-analyzer`, rodar `npm run build` (o `.mcp.json` aponta para o `dist/`). Versão atual **v0.5.0**.
 - Download exige **cookies** de uma sessão logada — use **conta descartável**: exporte um `cookies.txt` (Netscape) do navegador (extensão "Get cookies.txt LOCALLY") e rode `python scripts/download_instagram.py <perfil> --cookies <caminho>`.
 - `ffmpeg` no sistema é necessário **pro download** (yt-dlp mescla vídeo+áudio): `winget install Gyan.FFmpeg`. O MCP, por outro lado, usa um `ffmpeg-static` embutido.

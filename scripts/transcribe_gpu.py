@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""BATCH-transcribe an account's videos on the GPU (faster-whisper + CUDA).
+"""BATCH-transcribe an account's videos (faster-whisper) — GPU if available, else CPU.
 
-~20x faster than the openai-whisper CLI on CPU. Writes per-video sidecars
+Uses CUDA when a GPU is present (~20x faster) and falls back to CPU otherwise
+(works everywhere, just slower). Writes per-video sidecars
 (`downloads/<conta>/transcripts/<post_id>.{txt,json}`) — resumable (skips the
 ones that already have a sidecar). The notes phase (Opus) reads these sidecars.
 
 Usage:
     python scripts/transcribe_gpu.py <conta> [--limit N] [--category reel|highlight|story]
-                                              [--model medium] [--device cuda]
+                                              [--model medium] [--device auto|cuda|cpu]
 """
 from __future__ import annotations
 
@@ -20,14 +21,17 @@ import sys
 import time
 from pathlib import Path
 
-# CUDA DLLs from pip (cublas/cudnn/cudart/nvrtc) onto the DLL search path (Windows).
-for _sp in set(site.getsitepackages() + [site.getusersitepackages()]):
-    for _b in glob.glob(os.path.join(_sp, "nvidia", "*", "bin")):
-        try:
-            os.add_dll_directory(_b)
-        except OSError:
-            pass
-        os.environ["PATH"] = _b + os.pathsep + os.environ.get("PATH", "")
+# CUDA DLLs from pip (cublas/cudnn/cudart/nvrtc) onto the DLL search path.
+# Windows-only mechanism (add_dll_directory doesn't exist elsewhere); a no-op
+# when the nvidia-*-cu12 wheels aren't installed (i.e. a CPU-only setup).
+if hasattr(os, "add_dll_directory"):
+    for _sp in set(site.getsitepackages() + [site.getusersitepackages()]):
+        for _b in glob.glob(os.path.join(_sp, "nvidia", "*", "bin")):
+            try:
+                os.add_dll_directory(_b)
+            except OSError:
+                pass
+            os.environ["PATH"] = _b + os.pathsep + os.environ.get("PATH", "")
 
 import av  # noqa: E402  (ships with faster-whisper; used to detect the audio track)
 from faster_whisper import WhisperModel  # noqa: E402
@@ -35,6 +39,16 @@ from faster_whisper import WhisperModel  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 DOWNLOADS = ROOT / "downloads"
 MANIFESTS = ROOT / "manifests"
+
+
+def cuda_available() -> bool:
+    """True if faster-whisper can use a CUDA GPU (ctranslate2 sees a device)."""
+    try:
+        import ctranslate2  # ships with faster-whisper
+
+        return ctranslate2.get_cuda_device_count() > 0
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def has_audio(path: Path) -> bool:
@@ -103,7 +117,8 @@ def main() -> None:
     p.add_argument("--limit", type=int)
     p.add_argument("--category", choices=["reel", "highlight", "story", "post"])
     p.add_argument("--model", default=os.environ.get("WHISPER_GPU_MODEL", "medium"))
-    p.add_argument("--device", default="cuda")
+    p.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"],
+                   help="auto = GPU se disponível, senão CPU")
     p.add_argument("--beam", type=int, default=1)
     args = p.parse_args()
 
@@ -114,11 +129,23 @@ def main() -> None:
     tdir = DOWNLOADS / args.account / "transcripts"
     tdir.mkdir(parents=True, exist_ok=True)
 
-    compute = "float16" if args.device == "cuda" else "int8"
+    device = args.device
+    if device == "auto":
+        device = "cuda" if cuda_available() else "cpu"
+    compute = "float16" if device == "cuda" else "int8"
     t0 = time.time()
-    model = WhisperModel(args.model, device=args.device, compute_type=compute)
-    print(f"Modelo {args.model} em {args.device}/{compute} carregado em {time.time() - t0:.1f}s. "
-          f"{len(todo)} vídeos a transcrever.")
+    try:
+        model = WhisperModel(args.model, device=device, compute_type=compute)
+    except Exception as e:  # noqa: BLE001  (GPU broken/absent → fall back to CPU)
+        if device == "cuda":
+            print(f"GPU indisponível ({e}); caindo para CPU (mais lento).", file=sys.stderr)
+            device, compute = "cpu", "int8"
+            model = WhisperModel(args.model, device=device, compute_type=compute)
+        else:
+            raise
+    note = "  (CPU — pode demorar; em CPU considere --model small)" if device == "cpu" else ""
+    print(f"Modelo {args.model} em {device}/{compute} carregado em {time.time() - t0:.1f}s. "
+          f"{len(todo)} vídeos a transcrever.{note}")
 
     done = 0
     silent = 0

@@ -33,11 +33,12 @@ python scripts/download_instagram.py <perfil> --cookies C:\caminho\cookies.txt
   em **SQLite** `manifests/<conta>.db`. O `transcribe_gpu.py` lê **esse** SQLite — então, se você
   baixou só pela CLI, gere o SQLite com a migração do app (`app/src/server/migrate/importManifest.ts`).
 
-### `transcribe_gpu.py` — transcreve em lote na GPU ⭐
-Transcrição em massa com **faster-whisper `medium` em CUDA** (~16–24× tempo real; ~9,6k vídeos
-em poucas horas vs ~150h no CPU). Lê o manifest SQLite (`status='downloaded'`), pula o que já tem
-sidecar (**retomável**), e usa um **glossário de domínio** (`initial_prompt`) p/ acertar nomes
-próprios (Doha, Smiles, Iberia…).
+### `transcribe_gpu.py` — transcreve em lote (GPU se disponível, senão CPU) ⭐
+Transcrição em massa com **faster-whisper**: usa **GPU/CUDA quando há** (`--device auto`, ~16–24×
+tempo real; ~9,6k vídeos em horas) e **cai pra CPU** automaticamente se não houver GPU (funciona em
+qualquer máquina, só mais lento — em CPU use `--model small`). Lê o manifest SQLite
+(`status='downloaded'`), pula o que já tem sidecar (**retomável**), e usa um **glossário de domínio**
+(`initial_prompt`) p/ acertar nomes próprios (Doha, Smiles, Iberia…).
 ```
 python scripts/transcribe_gpu.py <conta> [--limit N] [--category reel|highlight|story|post]
                                  [--model medium] [--device cuda] [--beam 1]
