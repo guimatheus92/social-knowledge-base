@@ -1,11 +1,11 @@
-# Vídeos e áudio brutos — não versionar (pesados)
+# Raw videos and audio — not versioned (heavy)
 downloads/
 audio/
 
-# Estado do RAG (regenerável)
+# RAG state (regenerable)
 .rag/
 
-# Sessões / cookies (credenciais — NUNCA versionar)
+# Sessions / cookies (credentials — NEVER version)
 .instaloader
 *.session
 session-*
@@ -23,28 +23,28 @@ app/.next/
 app/out/
 app/.turbo/
 
-# Manifests por conta (.db + .json export) — estado local/pessoal, NÃO versionar
+# Per-account manifests (.db + .json export) — local/personal state, NOT versioned
 /manifests/*
 !/manifests/.gitkeep
 
-# Manifest legado da raiz (estado pessoal) — NÃO versionar
+# Legacy root manifest (personal state) — NOT versioned
 /manifest.json
 
-# Notas geradas (pessoais, específicas do seu acervo/uso) — NÃO versionar
+# Generated notes (personal, specific to your collection/usage) — NOT versioned
 /notes/*
 !/notes/.gitkeep
 
-# OCR language data (pesado, re-baixável)
+# OCR language data (heavy, re-downloadable)
 *.traineddata
 
-# Volume de dados do Docker (downloads/manifests/cookies montados aqui)
+# Docker data volume (downloads/manifests/cookies mounted here)
 data/
 
-# Cache de build do TypeScript
+# TypeScript build cache
 *.tsbuildinfo
 
-# Claude Code — configs locais da máquina (permissões)
+# Claude Code — machine-local config (permissions)
 .claude/settings.local.json
 
-# Mockups de design (temporários — manter local enquanto a UI não é refeita)
+# Design mockups (temporary — keep local while the UI isn't redone)
 /design-mockups/

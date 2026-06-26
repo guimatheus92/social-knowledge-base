@@ -24,14 +24,14 @@ MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Consulta as notas (RAG).")
-    p.add_argument("question", help="ex.: 'o que aprendi sobre X?'")
-    p.add_argument("-k", type=int, default=5, help="quantas notas retornar")
-    p.add_argument("--json", action="store_true", help="saída JSON (para integração)")
+    p = argparse.ArgumentParser(description="Query the notes (RAG).")
+    p.add_argument("question", help="e.g.: 'what did I learn about X?'")
+    p.add_argument("-k", type=int, default=5, help="how many notes to return")
+    p.add_argument("--json", action="store_true", help="JSON output (for integration)")
     args = p.parse_args()
 
     if not DB.exists():
-        print("[]" if args.json else "Nada indexado ainda. Rode: python scripts/index_notes.py")
+        print("[]" if args.json else "Nothing indexed yet. Run: python scripts/index_notes.py")
         return
 
     model = SentenceTransformer(MODEL_NAME)
@@ -45,7 +45,7 @@ def main() -> None:
     metas = res["metadatas"][0]
     dists = res["distances"][0]
     if not docs:
-        print("[]" if args.json else "Nada indexado ainda. Rode: python scripts/index_notes.py")
+        print("[]" if args.json else "Nothing indexed yet. Run: python scripts/index_notes.py")
         return
 
     hits = []
@@ -60,7 +60,7 @@ def main() -> None:
         json.dump(hits, sys.stdout, ensure_ascii=False)
         return
 
-    print(f"\nTop {len(hits)} notas para: {args.question}\n")
+    print(f"\nTop {len(hits)} notes for: {args.question}\n")
     for h in hits:
         print(f"### {h['path']}  (score {h['score']:.2f})")
         print(h["excerpt"])

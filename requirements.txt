@@ -1,21 +1,21 @@
-# Download dos vídeos (incl. Stories / Em Destaque) — autentica por cookies do navegador
-# (o instaloader foi abandonado: o endpoint web GraphQL dele devolve 401 desde ~jan/2025).
+# Video download (incl. Stories / Highlights) — authenticates via browser cookies
+# (instaloader was abandoned: its web GraphQL endpoint returns 401 since ~Jan/2025).
 gallery-dl>=1.32
-yt-dlp>=2025.1            # gallery-dl usa pra baixar/mesclar vídeo+áudio
+yt-dlp>=2025.1            # gallery-dl uses it to download/merge video+audio
 
-# Transcrição em massa na GPU — faster-whisper (CTranslate2), via scripts/transcribe_gpu.py
-# (~16–24× tempo real). Para usar a GPU (CUDA 12.8+, ex.: RTX 5060/Blackwell) instale também
-# os wheels com as DLLs CUDA:
+# Bulk GPU transcription — faster-whisper (CTranslate2), via scripts/transcribe_gpu.py
+# (~16–24× real time). To use the GPU (CUDA 12.8+, e.g. RTX 5060/Blackwell) also install
+# the wheels with the CUDA DLLs:
 #   pip install nvidia-cublas-cu12 nvidia-cudnn-cu12 nvidia-cuda-nvrtc-cu12 nvidia-cuda-runtime-cu12
 faster-whisper>=1.1
 
-# RAG — busca/consulta das notas e transcrições
+# RAG — search/query over the notes and transcripts
 chromadb>=0.5
 sentence-transformers>=3.0
 
-# NOTA 1: a transcrição em massa é GPU (faster-whisper acima). O MCP mcp-video-analyzer
-#   também sabe transcrever (fallback): CPU via `whisper` (pip install -U openai-whisper) ou
-#   GPU via env WHISPER_DEVICE=cuda. No fluxo normal o MCP reusa o `.vtt` da GPU e não transcreve.
-# NOTA 2: o `ffmpeg` precisa estar acessível (winget install Gyan.FFmpeg). Sem ele
-#   o yt-dlp não mescla as faixas e os vídeos vêm SEM ÁUDIO — a transcrição quebra.
-#   O download_instagram.py tenta localizar o ffmpeg sozinho e injetá-lo no PATH.
+# NOTE 1: bulk transcription runs on the GPU (faster-whisper above). The mcp-video-analyzer
+#   MCP can also transcribe (fallback): CPU via `whisper` (pip install -U openai-whisper) or
+#   GPU via env WHISPER_DEVICE=cuda. In the normal flow the MCP reuses the GPU `.vtt` and does not transcribe.
+# NOTE 2: `ffmpeg` must be reachable (winget install Gyan.FFmpeg). Without it
+#   yt-dlp won't merge the tracks and videos come out WITH NO AUDIO — transcription breaks.
+#   download_instagram.py tries to locate ffmpeg on its own and inject it into PATH.

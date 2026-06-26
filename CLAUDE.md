@@ -1,68 +1,68 @@
 # CLAUDE.md — social-knowledge-base
 
-> Instruções para o Claude Code neste repo. **Leia antes de agir.**
+> Instructions for Claude Code in this repo. **Read before acting.**
 
-## Projeto
+## Project
 
-Base de conhecimento construída a partir de vídeos do Instagram (Reels, Stories e **Em Destaque**) de uma ou mais contas. O Opus **assiste** (frames + OCR do que aparece na tela) e **ouve** (transcrição em PT-BR) cada vídeo e grava o que aprendeu em markdown.
+Knowledge base built from Instagram videos (Reels, Stories, and **Highlights**) of one or more accounts. Opus **watches** (frames + OCR of what appears on screen) and **listens** (PT-BR transcription) to each video and records what it learned in markdown.
 
-## Objetivo
+## Goal
 
-Baixar TODOS os vídeos de uma conta (incluindo "Em Destaque"), analisar cada um, e transformar o conteúdo em conhecimento consultável — para **muitos** vídeos, de forma **retomável** (pausar e continuar sem reprocessar).
+Download ALL videos from an account (including "Highlights"), analyze each one, and turn the content into queryable knowledge — for **many** videos, in a **resumable** way (pause and continue without reprocessing).
 
-## Como funciona (4 camadas)
+## How it works (4 layers)
 
-1. **Download** (Python / gallery-dl) — `scripts/download_instagram.py` (ou o **app** em `app/`) baixa os vídeos para `downloads/<perfil>/<aba>/` e registra o progresso. Autentica por um `cookies.txt` do navegador (o instaloader morreu: o endpoint web GraphQL dele dá `401` desde ~jan/2025). Injeta o `ffmpeg` no PATH (senão o vídeo vem sem áudio).
-2. **Transcrição em massa** (GPU) — `scripts/transcribe_gpu.py` roda **faster-whisper `medium` em CUDA** (~16–24× tempo real) com glossário de domínio, e grava sidecars: `downloads/<perfil>/transcripts/<id>.{txt,json}` + um `<id>.vtt` **ao lado do vídeo**. É a etapa que **escala** (~9,6k vídeos em horas, não nas ~150h do CPU).
-3. **Notas** (Claude Code + Opus + MCP `video-analyzer`) — seguindo `prompts/build-notes.md`, processa **1 vídeo por iteração**: lê a transcrição (o MCP reusa o `.vtt` como sidecar, sem re-rodar Whisper) e **assiste** frames + OCR via MCP, gravando `notes/<perfil>/videos/<id>.md`.
-4. **Síntese + RAG** — `prompts/synthesize-overview.md` gera `notes/<perfil>/OVERVIEW.md` (resumão por tema); `scripts/index_transcripts.py` + `scripts/index_notes.py` + `scripts/query.py` dão busca (a biblioteca fica buscável **só com a transcrição**, antes mesmo da nota curada). Detalhes dos scripts: [`scripts/CLAUDE.md`](scripts/CLAUDE.md).
+1. **Download** (Python / gallery-dl) — `scripts/download_instagram.py` (or the **app** in `app/`) downloads the videos to `downloads/<profile>/<tab>/` and records progress. Authenticates via a browser `cookies.txt` (instaloader is dead: its GraphQL web endpoint returns `401` since ~Jan/2025). Injects `ffmpeg` into PATH (otherwise the video comes out without audio).
+2. **Bulk transcription** (GPU) — `scripts/transcribe_gpu.py` runs **faster-whisper `medium` on CUDA** (~16–24× real time) with a domain glossary, and writes sidecars: `downloads/<profile>/transcripts/<id>.{txt,json}` + an `<id>.vtt` **next to the video**. This is the step that **scales** (~9.6k videos in hours, not the ~150h on CPU).
+3. **Notes** (Claude Code + Opus + MCP `video-analyzer`) — following `prompts/build-notes.md`, processes **1 video per iteration**: reads the transcription (the MCP reuses the `.vtt` as a sidecar, without re-running Whisper) and **watches** frames + OCR via MCP, writing `notes/<profile>/videos/<id>.md`.
+4. **Synthesis + RAG** — `prompts/synthesize-overview.md` generates `notes/<profile>/OVERVIEW.md` (theme-by-theme summary); `scripts/index_transcripts.py` + `scripts/index_notes.py` + `scripts/query.py` provide search (the library becomes searchable **with the transcription alone**, even before the curated note). Script details: [`scripts/CLAUDE.md`](scripts/CLAUDE.md).
 
-## O que fazer (workflow do agente)
+## What to do (agent workflow)
 
-- Gerar notas → siga `prompts/build-notes.md`. **Sempre 1 vídeo por vez**; pule os que têm `lido_em != null` no `manifest.json`.
-- Resumão → siga `prompts/synthesize-overview.md`.
-- **Nunca** reprocesse um vídeo já `lido`. **Nunca** jogue dezenas de vídeos no mesmo contexto (estoura e fica caro).
+- Generate notes → follow `prompts/build-notes.md`. **Always 1 video at a time**; skip the ones that have `lido_em != null` in `manifest.json`.
+- Summary → follow `prompts/synthesize-overview.md`.
+- **Never** reprocess a video that is already `lido`. **Never** dump dozens of videos into the same context (it blows up and gets expensive).
 
-## Definição de sucesso (NUNCA esquecer)
+## Definition of success (NEVER forget)
 
-1. Todo vídeo da conta (incl. Em Destaque) tem uma nota `.md` correspondente.
-2. Cada nota captura o que foi **dito** (transcrição) **e mostrado** (OCR/visual) — não um resumo genérico.
-3. Processo **retomável**: `manifest.json` registra o que foi baixado/lido e *quando*; pausar e retomar não duplica nem reprocessa.
-4. Transcrição em **português** legível — **faster-whisper `medium` na GPU** + glossário de domínio (nomes próprios certos: Doha, Smiles, Iberia…), não o `tiny`/`small` impreciso.
-5. Existe um índice por perfil **e** um `notes/<perfil>/OVERVIEW.md` (resumão por tema) com links de volta às notas.
-6. Dá para **consultar** depois (RAG): `query.py "o que aprendi sobre X?"` retorna notas com citação.
+1. Every video in the account (incl. Highlights) has a corresponding `.md` note.
+2. Each note captures what was **said** (transcription) **and shown** (OCR/visual) — not a generic summary.
+3. **Resumable** process: `manifest.json` records what was downloaded/read and *when*; pausing and resuming neither duplicates nor reprocesses.
+4. Readable **Portuguese** transcription — **faster-whisper `medium` on GPU** + domain glossary (proper nouns correct: Doha, Smiles, Iberia…), not the imprecise `tiny`/`small`.
+5. There is a per-profile index **and** a `notes/<profile>/OVERVIEW.md` (theme-by-theme summary) with links back to the notes.
+6. You can **query** later (RAG): `query.py "what did I learn about X?"` returns notes with a citation.
 
-## Convenções
+## Conventions
 
-- `downloads/<perfil>/` — vídeos brutos (gitignored). `audio/` — opcional (gitignored).
-- **`notes/<perfil>/` e `manifests/` são estado pessoal/gerado — gitignored, NÃO versionados.** O repo versiona só o que é genérico (código + prompts + docs); as notas e o manifest são específicos do seu acervo/uso.
-- `notes/<perfil>/videos/<id>.md` — uma nota por vídeo (frontmatter YAML obrigatório). `notes/<perfil>/README.md` — índice. `notes/<perfil>/OVERVIEW.md` — resumão por tema (por conta). `notes/<perfil>/{GUIA-EMISSOES,SMILES,…}.md` — guias temáticos/por programa.
-- `manifests/<conta>.db` — estado/checkpoint em **SQLite** (fonte da verdade do progresso) + export JSON `manifests/<conta>.json`. Ambos são **estado local (gitignored)**. O `manifest.json` da raiz é **legado** (idem, gitignored).
-- `prompts/` — prompts dos agentes. `scripts/` — download, transcrição GPU e RAG (Python); ver [`scripts/CLAUDE.md`](scripts/CLAUDE.md). `downloads/<perfil>/transcripts/` — sidecars de transcrição.
-- Timestamps em ISO 8601 (UTC) — use `date -Iseconds`.
+- `downloads/<profile>/` — raw videos (gitignored). `audio/` — optional (gitignored).
+- **`notes/<profile>/` and `manifests/` are personal/generated state — gitignored, NOT versioned.** The repo versions only what is generic (code + prompts + docs); the notes and the manifest are specific to your collection/usage.
+- `notes/<profile>/videos/<id>.md` — one note per video (YAML frontmatter mandatory). `notes/<profile>/README.md` — index. `notes/<profile>/OVERVIEW.md` — theme-by-theme summary (per account). `notes/<profile>/{GUIA-EMISSOES,SMILES,…}.md` — thematic/per-program guides.
+- `manifests/<account>.db` — state/checkpoint in **SQLite** (source of truth for progress) + JSON export `manifests/<account>.json`. Both are **local state (gitignored)**. The root `manifest.json` is **legacy** (likewise, gitignored).
+- `prompts/` — agent prompts. `scripts/` — download, GPU transcription, and RAG (Python); see [`scripts/CLAUDE.md`](scripts/CLAUDE.md). `downloads/<profile>/transcripts/` — transcription sidecars.
+- Timestamps in ISO 8601 (UTC) — use `date -Iseconds`.
 
 ## Setup
 
-- `pip install -r requirements.txt`. **Transcrição em massa:** `faster-whisper` — usa **GPU/CUDA se disponível** (wheels `nvidia-*-cu12`, CUDA 12.8+ p/ Blackwell/RTX 5060; no Windows com GPU injeta as DLLs CUDA via `os.add_dll_directory`, senão `cublas64_12.dll cannot be loaded`) e **cai pra CPU** automaticamente se não houver GPU (mais lento; em CPU considere `--model small`).
-- Buildar o MCP: em `../mcp-video-analyzer`, rodar `npm run build` (o `.mcp.json` aponta para o `dist/`). Versão atual **v0.5.0**.
-- Download exige **cookies** de uma sessão logada — use **conta descartável**: exporte um `cookies.txt` (Netscape) do navegador (extensão "Get cookies.txt LOCALLY") e rode `python scripts/download_instagram.py <perfil> --cookies <caminho>`.
-- `ffmpeg` no sistema é necessário **pro download** (yt-dlp mescla vídeo+áudio): `winget install Gyan.FFmpeg`. O MCP, por outro lado, usa um `ffmpeg-static` embutido.
+- `pip install -r requirements.txt`. **Bulk transcription:** `faster-whisper` — uses **GPU/CUDA if available** (`nvidia-*-cu12` wheels, CUDA 12.8+ for Blackwell/RTX 5060; on Windows with a GPU it injects the CUDA DLLs via `os.add_dll_directory`, otherwise `cublas64_12.dll cannot be loaded`) and **falls back to CPU** automatically if there is no GPU (slower; on CPU consider `--model small`).
+- Build the MCP: in `../mcp-video-analyzer`, run `npm run build` (the `.mcp.json` points to `dist/`). Current version **v0.5.0**.
+- Download requires **cookies** from a logged-in session — use a **throwaway account**: export a `cookies.txt` (Netscape) from the browser (the "Get cookies.txt LOCALLY" extension) and run `python scripts/download_instagram.py <profile> --cookies <path>`.
+- System `ffmpeg` is required **for download** (yt-dlp merges video+audio): `winget install Gyan.FFmpeg`. The MCP, on the other hand, uses an embedded `ffmpeg-static`.
 
-O template da nota é canônico em [`prompts/build-notes.md`](prompts/build-notes.md).
+The note template is canonical in [`prompts/build-notes.md`](prompts/build-notes.md).
 
 ## App (UI) — `app/`
 
-Há um app **Next.js 16 + TypeScript + Tailwind 4 + shadcn/ui (Base UI)** em [`app/`](app/) que dá UI ao download: adicionar várias contas, escolher mídia, dar Play, ver progresso ao vivo (SSE), tamanho, tempo, e navegar o acervo. É um **app único** — o Node chama as CLIs (`gallery-dl`/`yt-dlp`/`ffmpeg`) via `child_process` (sem backend Python).
+There is a **Next.js 16 + TypeScript + Tailwind 4 + shadcn/ui (Base UI)** app in [`app/`](app/) that gives a UI to the download: add multiple accounts, choose media, hit Play, watch live progress (SSE), size, time, and browse the collection. It is a **single app** — Node calls the CLIs (`gallery-dl`/`yt-dlp`/`ffmpeg`) via `child_process` (no Python backend).
 
-- **Manifest:** migrou de `manifest.json` (raiz, PT) para **SQLite por conta** em [`manifests/<conta>.db`](manifests/) (via `node:sqlite`), com export JSON `manifests/<conta>.json` (estado local — **gitignored**). Schema/repo em `app/src/server/db/`. Migração: `cd app && npx tsx src/server/migrate/importManifest.ts` (reconcilia com o disco).
-- **Engine:** `app/src/server/engine/` — `galleryDl.ts` (spawn `python -m gallery_dl`, parse stdout, **seedArchive** pra retomar sem re-baixar), `ffmpeg.ts` (injeta o ffmpeg no PATH), `jobManager.ts` (jobs por conta, abas em paralelo, serialização por cookies, SSE).
-- **Rodar:** `cd app && npm run dev` → http://localhost:3000. Cookies da conta de login ficam em `localStorage` (credencial; não versionar).
-- **Roda como servidor Node** (`next start`/`next dev`, runtime node — NÃO edge/serverless) por causa dos processos filhos + SSE.
-- **Tema/Design:** direção **Media Cinematic** (dark, glassy, acento coral→magenta→violet, Clash Display + Hanken + JetBrains Mono). Paleta e tokens documentados em [`DESIGN.md`](DESIGN.md); a fonte da verdade dos tokens é `app/src/app/globals.css`. O separador de seção é o `BrandRule` (gradiente da marca).
+- **Manifest:** migrated from `manifest.json` (root, PT) to **per-account SQLite** in [`manifests/<account>.db`](manifests/) (via `node:sqlite`), with JSON export `manifests/<account>.json` (local state — **gitignored**). Schema/repo in `app/src/server/db/`. Migration: `cd app && npx tsx src/server/migrate/importManifest.ts` (reconciles with the disk).
+- **Engine:** `app/src/server/engine/` — `galleryDl.ts` (spawn `python -m gallery_dl`, parse stdout, **seedArchive** to resume without re-downloading), `ffmpeg.ts` (injects ffmpeg into PATH), `jobManager.ts` (per-account jobs, tabs in parallel, serialization by cookies, SSE).
+- **Run:** `cd app && npm run dev` → http://localhost:3000. The login account's cookies live in `localStorage` (credential; do not version).
+- **Runs as a Node server** (`next start`/`next dev`, node runtime — NOT edge/serverless) because of the child processes + SSE.
+- **Theme/Design:** **Media Cinematic** direction (dark, glassy, coral→magenta→violet accent, Clash Display + Hanken + JetBrains Mono). Palette and tokens documented in [`DESIGN.md`](DESIGN.md); the source of truth for the tokens is `app/src/app/globals.css`. The section separator is the `BrandRule` (brand gradient).
 
-## MCP — leitura de vídeo (frames + OCR + transcrição)
+## MCP — video reading (frames + OCR + transcription)
 
-A leitura é feita pelo MCP **[`guimatheus92/mcp-video-analyzer`](../mcp-video-analyzer)** (em `.mcp.json`), via `analyze_video`/`analyze_videos`.
+Reading is done by the MCP **[`guimatheus92/mcp-video-analyzer`](../mcp-video-analyzer)** (in `.mcp.json`), via `analyze_video`/`analyze_videos`.
 
-- **Versão atual: v0.5.0** — todos os bugs/feature-requests que tínhamos relatado **já foram implementados e verificados**: frames em vídeo estático (amostragem uniforme quando não há corte de cena), OCR com pré-processo (grayscale/2×/sharpen), `model`/`language`/`initialPrompt` por chamada, batch `analyze_videos`, backend **GPU faster-whisper** (`WHISPER_DEVICE`/`WHISPER_COMPUTE`), `MCP_WRITE_SIDECARS`, word-timestamps e rótulo de clipe mudo. **Sem gaps abertos** (o doc de feature-requests foi removido por isso).
-- `.mcp.json` define `WHISPER_PROMPT` (glossário) e `MCP_WRITE_SIDECARS=1`. O MCP **lê** o `.vtt` que o `transcribe_gpu.py` grava ao lado do vídeo → não re-roda Whisper, só faz frames/OCR. Mudanças no `.mcp.json` valem **no próximo restart** do Claude Code.
+- **Current version: v0.5.0** — all the bugs/feature-requests we had reported **have already been implemented and verified**: frames in a static video (uniform sampling when there is no scene cut), OCR with preprocessing (grayscale/2×/sharpen), `model`/`language`/`initialPrompt` per call, batch `analyze_videos`, **GPU faster-whisper** backend (`WHISPER_DEVICE`/`WHISPER_COMPUTE`), `MCP_WRITE_SIDECARS`, word-timestamps, and a silent-clip label. **No open gaps** (the feature-requests doc was removed for this reason).
+- `.mcp.json` defines `WHISPER_PROMPT` (glossary) and `MCP_WRITE_SIDECARS=1`. The MCP **reads** the `.vtt` that `transcribe_gpu.py` writes next to the video → it does not re-run Whisper, it only does frames/OCR. Changes to `.mcp.json` take effect **on the next restart** of Claude Code.

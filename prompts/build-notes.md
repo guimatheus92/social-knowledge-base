@@ -1,56 +1,53 @@
-# Prompt: gerar notas (1 vídeo por iteração)
+# Prompt: build notes (1 video per iteration)
 
-Você é um agente que constrói uma base de conhecimento a partir de vídeos do Instagram já baixados. O MCP `video-analyzer` está configurado neste repo (veja `.mcp.json`).
+You are an agent that builds a knowledge base from already-downloaded Instagram videos. The `video-analyzer` MCP is configured in this repo (see `.mcp.json`).
 
-## Regras
+## Rules
 
-1. Leia `manifest.json`. Escolha **UM** vídeo com `lido_em == null` (o de chave mais antiga). Se não houver nenhum, diga que terminou e **pare**.
-2. Chame a tool `analyze_video` com:
-   - `url`: o caminho **absoluto** do vídeo — ex.: `C:/Users/guilh/repos/instagram-knowledge-base/<chave do manifest>`.
+1. Take **ONE** video that has no note yet.
+   - **App flow:** the caller hands you the exact video (id, profile, origin, absolute path) — just process it.
+   - **CLI flow:** pick the oldest unread video; if none are left, say you're done and **stop**.
+2. Call the `analyze_video` tool with:
+   - `url`: the **absolute** path to the video — e.g. `C:/Users/guilh/repos/instagram-knowledge-base/downloads/<profile>/<file>.mp4`.
    - `options`: `{ "detail": "standard", "ocrLanguage": "por+eng" }`.
-3. **Assista** (use os frames + OCR) e **ouça** (use a transcrição) e escreva a nota em `notes/<perfil>/videos/<id>.md` seguindo o TEMPLATE abaixo. Preencha o frontmatter: `temas`, `entidades`, `origem` (use o campo `origem` do manifest), `duracao`, `processado_em`.
-4. Atualize a entrada no `manifest.json`:
-   - `lido_em` = timestamp ISO (rode `date -Iseconds` para obter),
-   - `nota` = caminho da nota gravada,
-   - `status` = `"lido"`.
-   - Em erro irrecuperável (vídeo corrompido, sem áudio e sem visual útil), `status` = `"erro"` e `erro` = motivo curto; **siga em frente**, não trave a fila.
-5. Atualize o índice `notes/<perfil>/README.md` com uma linha por nota (link + resumo de 1 linha).
-6. **Pare após 1 vídeo.** Para processar muitos, rode em loop (skill `/loop`) ou re-invoque este prompt.
+3. **Watch** (use the frames + OCR) and **listen** (use the transcript), then write the note to `notes/<profile>/videos/<id>.md` following the TEMPLATE below. Fill the frontmatter: `themes`, `entities`, `origin`, `duration`, `processed_at`.
+4. **Language:** write every section heading **and** all prose in the language the caller asks for (default: **English**). Keep the YAML frontmatter KEYS exactly as in the template — never translate the keys.
+5. **Stop after 1 video.** To process many, run in a loop (`/loop` skill) or re-invoke this prompt. Bookkeeping (marking the note done) is the caller's job — the app records it in the SQLite manifest; in the CLI flow, track it yourself.
 
-## Template da nota (canônico)
+## Note template (canonical)
 
 ```markdown
 ---
-video: downloads/<perfil>/<arquivo>.mp4
-perfil: <perfil>
-origem: highlight:<nome> | reel | story
-duracao: "<m:ss>"
-processado_em: <ISO timestamp>
-temas: [<tema1>, <tema2>]
-entidades: [<pessoa/produto/lugar>]
+video: downloads/<profile>/<file>.mp4
+profile: <profile>
+origin: highlight:<name> | reel | story
+duration: "<m:ss>"
+processed_at: <ISO timestamp>
+themes: [<theme1>, <theme2>]
+entities: [<person/product/place>]
 ---
 
-# <título/arquivo do vídeo>
+# <video title/file>
 
-## Resumo
-<2-4 frases do que o vídeo ensina>
+## Summary
+<2–4 sentences on what the video teaches>
 
-## Principais aprendizados
+## Key takeaways
 - <bullet>
 
-## Texto na tela (OCR)
-- <timestamp> — <texto relevante>
+## On-screen text (OCR)
+- <timestamp> — <relevant text>
 
-## Trechos da fala (transcrição)
-- <timestamp> — <citação relevante>
+## Spoken excerpts (transcript)
+- <timestamp> — <relevant quote>
 ```
 
-## Por que 1 por vez
+## Why one at a time
 
-`analyze_video` (detail `standard`) retorna ~20 frames + transcrição + OCR — pesado no contexto. Processar um, gravar a nota, e só então seguir evita estourar o contexto, controla custo, e torna o processo **retomável** via `manifest.json` (se pausar, retoma exatamente de onde parou).
+`analyze_video` (detail `standard`) returns ~20 frames + transcript + OCR — heavy on the context window. Processing one, writing the note, and only then moving on avoids blowing the context, controls cost, and makes the process **resumable** (pause and resume exactly where you stopped).
 
-## Qualidade
+## Quality
 
-- `temas` devem ser consistentes entre vídeos (reaproveite os já usados quando couber) — é o que o resumão e o RAG usam para agrupar.
-- Cite timestamps reais (vindos da transcrição/timeline do `analyze_video`).
-- Não invente: se a fala estiver inaudível ou o OCR vazio, diga isso na seção correspondente.
+- `themes` should be consistent across videos (reuse the ones already in use when they fit) — the overview and the RAG use them to group.
+- Cite real timestamps (from the transcript/timeline of `analyze_video`).
+- Don't invent: if speech is inaudible or OCR is empty, say so in the corresponding section.

@@ -3,11 +3,11 @@
 
 Uses CUDA when a GPU is present (~20x faster) and falls back to CPU otherwise
 (works everywhere, just slower). Writes per-video sidecars
-(`downloads/<conta>/transcripts/<post_id>.{txt,json}`) — resumable (skips the
+(`downloads/<account>/transcripts/<post_id>.{txt,json}`) — resumable (skips the
 ones that already have a sidecar). The notes phase (Opus) reads these sidecars.
 
 Usage:
-    python scripts/transcribe_gpu.py <conta> [--limit N] [--category reel|highlight|story]
+    python scripts/transcribe_gpu.py <account> [--limit N] [--category reel|highlight|story]
                                               [--model medium] [--device auto|cuda|cpu]
 """
 from __future__ import annotations
@@ -112,19 +112,19 @@ def items_to_do(account: str, category: str | None, limit: int | None) -> list[t
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Transcrição em lote na GPU (faster-whisper).")
+    p = argparse.ArgumentParser(description="Batch transcription on the GPU (faster-whisper).")
     p.add_argument("account")
     p.add_argument("--limit", type=int)
     p.add_argument("--category", choices=["reel", "highlight", "story", "post"])
     p.add_argument("--model", default=os.environ.get("WHISPER_GPU_MODEL", "medium"))
     p.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"],
-                   help="auto = GPU se disponível, senão CPU")
+                   help="auto = GPU if available, else CPU")
     p.add_argument("--beam", type=int, default=1)
     args = p.parse_args()
 
     todo = items_to_do(args.account, args.category, args.limit)
     if not todo:
-        print("Nada a transcrever (tudo já tem sidecar).")
+        print("Nothing to transcribe (everything already has a sidecar).")
         return
     tdir = DOWNLOADS / args.account / "transcripts"
     tdir.mkdir(parents=True, exist_ok=True)
@@ -138,14 +138,14 @@ def main() -> None:
         model = WhisperModel(args.model, device=device, compute_type=compute)
     except Exception as e:  # noqa: BLE001  (GPU broken/absent → fall back to CPU)
         if device == "cuda":
-            print(f"GPU indisponível ({e}); caindo para CPU (mais lento).", file=sys.stderr)
+            print(f"GPU unavailable ({e}); falling back to CPU (slower).", file=sys.stderr)
             device, compute = "cpu", "int8"
             model = WhisperModel(args.model, device=device, compute_type=compute)
         else:
             raise
-    note = "  (CPU — pode demorar; em CPU considere --model small)" if device == "cpu" else ""
-    print(f"Modelo {args.model} em {device}/{compute} carregado em {time.time() - t0:.1f}s. "
-          f"{len(todo)} vídeos a transcrever.{note}")
+    note = "  (CPU — may be slow; on CPU consider --model small)" if device == "cpu" else ""
+    print(f"Model {args.model} on {device}/{compute} loaded in {time.time() - t0:.1f}s. "
+          f"{len(todo)} videos to transcribe.{note}")
 
     done = 0
     silent = 0
@@ -167,7 +167,7 @@ def main() -> None:
             )
             segs = [{"start": round(s.start, 2), "end": round(s.end, 2), "text": s.text.strip()} for s in segments]
         except Exception as e:  # noqa: BLE001
-            print(f"  ERRO {post_id}: {e}", file=sys.stderr)
+            print(f"  ERROR {post_id}: {e}", file=sys.stderr)
             continue
         (tdir / f"{post_id}.json").write_text(
             json.dumps({"duration": info.duration, "segments": segs}, ensure_ascii=False, indent=1),
@@ -183,11 +183,11 @@ def main() -> None:
         audio_total += info.duration or 0
         if done % 10 == 0 or done == len(todo):
             wall = time.time() - wall0
-            print(f"  {done}/{len(todo)} | {audio_total / max(wall, 1):.0f}x tempo real "
-                  f"| {wall:.0f}s decorridos", flush=True)
+            print(f"  {done}/{len(todo)} | {audio_total / max(wall, 1):.0f}x real time "
+                  f"| {wall:.0f}s elapsed", flush=True)
 
-    print(f"Pronto: {done} transcritos, {silent} mudos (sem áudio) em {time.time() - wall0:.0f}s "
-          f"(~{audio_total / max(time.time() - wall0, 1):.0f}x tempo real). Sidecars em {tdir}")
+    print(f"Done: {done} transcribed, {silent} silent (no audio) in {time.time() - wall0:.0f}s "
+          f"(~{audio_total / max(time.time() - wall0, 1):.0f}x real time). Sidecars in {tdir}")
 
 
 if __name__ == "__main__":
