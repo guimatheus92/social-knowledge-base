@@ -32,13 +32,34 @@ Download ALL videos from an account (including "Highlights"), analyze each one, 
 5. There is a per-profile index **and** a `notes/<profile>/OVERVIEW.md` (theme-by-theme summary) with links back to the notes.
 6. You can **query** later (RAG): `query.py "what did I learn about X?"` returns notes with a citation.
 
+## Data & storage
+
+Where everything lives — the single map. **All of it is local/personal state —
+gitignored, NOT versioned** (the repo ships only code + prompts + docs; your
+collection is yours).
+
+| What | Where | Notes |
+|---|---|---|
+| Raw videos / images | `downloads/<profile>/<tab>/` | the download output |
+| Thumbnails (posters) | `downloads/<profile>/.thumbs/<id>.jpg` | generated lazily via ffmpeg (cap 3), cached on disk |
+| Transcripts | `downloads/<profile>/transcripts/<id>.{txt,json}` + an `<id>.vtt` **next to the video** | the MCP reuses the `.vtt` instead of re-running Whisper |
+| Resume archive | `downloads/<profile>/.gdl-archive.sqlite3` | gallery-dl's "already downloaded" set |
+| **Manifest (source of truth)** | `manifests/<account>.db` — **SQLite** (`node:sqlite`) | per-account progress/checkpoint |
+| Manifest JSON export | `manifests/<account>.json` | snapshot of the DB |
+| Legacy root manifest | `manifest.json` | **deprecated** (pre-SQLite) |
+| Curated notes | `notes/<profile>/videos/<id>.md` (+ `<id>.meta.json` = token usage) | YAML frontmatter mandatory |
+| Note index / overview | `notes/<profile>/README.md`, `OVERVIEW.md`, thematic guides | |
+| RAG vector index | `.rag/` — ChromaDB | regenerable from transcripts/notes |
+| LLM reading config | `manifests/analysis-config.json` (note language, detail, OCR…) + Whisper env in `.mcp.json` | `.mcp.json` IS versioned; the rest is local |
+| Login cookies | the `cookies.txt` you point to (Docker: `./data/cookies.txt`) | a **credential** — the app stores only the *path* (`localStorage`), never the values; see [SECURITY.md](SECURITY.md) |
+
+`audio/` is an optional extra (gitignored). The Python scripts that write several
+of these are documented in [`scripts/CLAUDE.md`](scripts/CLAUDE.md).
+
 ## Conventions
 
-- `downloads/<profile>/` — raw videos (gitignored). `audio/` — optional (gitignored).
-- **`notes/<profile>/` and `manifests/` are personal/generated state — gitignored, NOT versioned.** The repo versions only what is generic (code + prompts + docs); the notes and the manifest are specific to your collection/usage.
-- `notes/<profile>/videos/<id>.md` — one note per video (YAML frontmatter mandatory). `notes/<profile>/README.md` — index. `notes/<profile>/OVERVIEW.md` — theme-by-theme summary (per account). `notes/<profile>/{GUIA-EMISSOES,SMILES,…}.md` — thematic/per-program guides.
-- `manifests/<account>.db` — state/checkpoint in **SQLite** (source of truth for progress) + JSON export `manifests/<account>.json`. Both are **local state (gitignored)**. The root `manifest.json` is **legacy** (likewise, gitignored).
-- `prompts/` — agent prompts. `scripts/` — download, GPU transcription, and RAG (Python); see [`scripts/CLAUDE.md`](scripts/CLAUDE.md). `downloads/<profile>/transcripts/` — transcription sidecars.
+- `prompts/` — agent prompts. `scripts/` — download, GPU transcription, and RAG (Python); see [`scripts/CLAUDE.md`](scripts/CLAUDE.md).
+- Notes: one per video at `notes/<profile>/videos/<id>.md` (YAML frontmatter mandatory); `notes/<profile>/README.md` is the index, `OVERVIEW.md` the theme summary.
 - Timestamps in ISO 8601 (UTC) — use `date -Iseconds`.
 
 ## Setup

@@ -6,7 +6,7 @@
 
 Turns a creator's videos (Instagram today; **TikTok/YouTube in progress**) into a markdown knowledge base: Opus **watches** (frames + OCR) and **listens** (transcription) to each video and writes down what it learned — for many videos, in a **resumable** way. The UI is bilingual (PT/EN).
 
-> **Requires the [`mcp-video-analyzer`](https://github.com/guimatheus92/mcp-video-analyzer) MCP** (built locally) — it is how the notes phase reads each video (transcript + frames + OCR + timeline). Build it once (see [Setup](#setup)); the project points Claude Code at it via `.mcp.json`.
+> **Two engines make it work.** **[gallery-dl](https://github.com/mikf/gallery-dl)** (with `yt-dlp` + `ffmpeg`) does the **downloading** — it's the library that actually pulls every Reel, Story, and Highlight from a public profile, authenticated by your browser cookies. Then the **[`mcp-video-analyzer`](https://github.com/guimatheus92/mcp-video-analyzer)** MCP does the **reading** — transcript + frames + OCR + timeline. **Both are required** (build them once — see [Setup](#setup)). The cookies are a credential — see [Security & cookies](#security--cookies).
 
 > Market check: no open-source tool does the full flow (download a whole account incl. Highlights → watch + listen → knowledge base). The existing ones only transcribe one reel's audio at a time.
 
@@ -116,7 +116,21 @@ The LLM-written notes have a configurable language. The **default is English**; 
 
 The canonical note template + quality rules live in **[`prompts/build-notes.md`](prompts/build-notes.md)** (frontmatter keys + sections). The notes phase reads it directly.
 
-## Privacy & versioning
+## Security & cookies
 
-- Use a **throwaway account** for the cookies: highlights/stories require login and Instagram may rate-limit or ban scrapers. gallery-dl already spaces requests (~10s) on its own. The `cookies.txt` is a **live credential** — keep it private (gitignored via `*cookies*.txt`) and re-export when it expires (downloads start redirecting to login).
-- **Not versioned (gitignored):** `downloads/` and `audio/` (heavy); **`notes/` and the manifests** (`manifests/*`, the legacy root `manifest.json`) — these are your personal knowledge base + progress, specific to your own collection. The repo versions only the generic parts (code + prompts + docs).
+The `cookies.txt` is a **live credential** — a logged-in session from a
+**throwaway** account (highlights/stories require login). Keep it private (it's
+gitignored via `*cookies*.txt`), never commit it, and re-export it when it
+expires (downloads start redirecting to login). The app reads it **server-side**
+and **never sends cookie values to the browser**. gallery-dl already spaces
+requests (~10s) to avoid rate-limits/bans.
+
+For the full threat model, hardening, and **responsible use** — you're
+downloading publicly-visible content with your own session, so respect each
+platform's Terms of Service and copyright — see **[SECURITY.md](SECURITY.md)**.
+
+## Contributing & license
+
+- **Contribute:** see [CONTRIBUTING.md](CONTRIBUTING.md) (setup, checks, conventions) and the [Code of Conduct](CODE_OF_CONDUCT.md).
+- **Security:** report privately — see [SECURITY.md](SECURITY.md).
+- **License:** [MIT](LICENSE). The tools it drives (gallery-dl, yt-dlp, ffmpeg, the MCP, faster-whisper, …) keep their own licenses; downloaded media belongs to its creators.

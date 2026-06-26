@@ -4,6 +4,12 @@
 your own media library and reads/writes files on the machine it runs on. Like a
 desktop app, it has **no authentication by design** — it trusts whoever can reach it.
 
+## Supported versions
+
+Fast-moving personal project: only the latest commit on `main` (and the `dev`
+working branch) is supported. There are no backports to older revisions — pull
+the latest before reporting.
+
 ## Threat model
 
 - **Intended:** runs on `localhost`, used by one person (you). The Docker compose
@@ -19,6 +25,23 @@ desktop app, it has **no authentication by design** — it trusts whoever can re
   Treat it like a password. It is gitignored (`*cookies*.txt`, plus `/data` in
   Docker) and **never sent to the browser**: the server reads the file; the UI
   only ever sees a path and a validity badge (derived from the cookie's expiry).
+
+## Responsible use
+
+This tool downloads media that is **publicly visible** on the source platform,
+using **your own** logged-in session (the cookies). That is a real action with
+real obligations:
+
+- **Respect the platform's Terms of Service and copyright.** The videos and their
+  content belong to their creators, not to you. Use this for **personal,
+  educational, or research** purposes — archiving and studying content you are
+  allowed to access — not for republishing, reselling, or redistributing others' work.
+- **Use a throwaway account** for the cookies, never your main one. Logged-in
+  scraping can get an account rate-limited or banned.
+- **Don't hammer the platform.** The downloader already spaces requests (~10s) and
+  the parallelism is capped (default 2, max 4) on purpose — leave it there.
+- **You are responsible** for what you download and what you do with it. The MIT
+  license disclaims warranty and liability (see [LICENSE](LICENSE)).
 
 ## Hardening in place
 
@@ -53,4 +76,7 @@ desktop app, it has **no authentication by design** — it trusts whoever can re
 
 ## Reporting
 
-Personal project — open a GitHub issue (no sensitive details in public).
+Found a vulnerability? Report it **privately** — don't open a public issue. Use
+GitHub's **"Report a vulnerability"** (the repo's *Security* tab → *Advisories*).
+Never include real cookies, session ids, or other secrets in a report. You'll
+get a response as soon as the maintainer can (this is a side project).
