@@ -5,6 +5,7 @@ import type {
   Counts,
   Item,
   JobSnapshot,
+  NoteMeta,
   NotesJobStatus,
   SearchHit,
 } from "@/lib/types";
@@ -111,9 +112,13 @@ export const api = {
   openFile: (account: string, postId: string) =>
     jpost<{ ok: boolean }>("/api/fs/open-file", { account, postId }),
   videoDetail: (account: string, postId: string) =>
-    jget<{ item: Item; note: string | null; transcript: string | null; webUrl?: string | null }>(
-      `/api/accounts/${encodeURIComponent(account)}/items/${encodeURIComponent(postId)}/detail`,
-    ),
+    jget<{
+      item: Item;
+      note: string | null;
+      transcript: string | null;
+      webUrl?: string | null;
+      noteMeta?: NoteMeta | null;
+    }>(`/api/accounts/${encodeURIComponent(account)}/items/${encodeURIComponent(postId)}/detail`),
   search: (q: string, k = 10) =>
     jget<{ hits: SearchHit[]; error?: string }>(`/api/search?q=${encodeURIComponent(q)}&k=${k}`),
   notesHealth: () => jget<{ available: boolean }>("/api/notes/health"),

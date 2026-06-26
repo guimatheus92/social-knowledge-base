@@ -130,6 +130,14 @@ export interface AccountSummary extends Account {
 /** SSE message: either an initial snapshot or a progress event. */
 export type StreamMessage = { t: "snapshot"; snapshot: JobSnapshot | null } | JobEvent;
 
+/** Generation metadata for a curated note (Claude Code token usage). */
+export interface NoteMeta {
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number | null;
+  generatedAt: string;
+}
+
 /** Progress of a per-account note-generation batch (Claude Code). */
 export interface NotesJobStatus {
   account: string;

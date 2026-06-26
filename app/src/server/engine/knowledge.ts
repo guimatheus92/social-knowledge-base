@@ -9,7 +9,7 @@ import { readFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { ROOT, assertSafeSegment } from "@/server/paths";
 import * as repo from "@/server/db/repository";
-import type { SearchHit } from "@/lib/types";
+import type { NoteMeta, SearchHit } from "@/lib/types";
 
 const PYTHON = process.env.PYTHON_BIN || "python";
 
@@ -35,7 +35,7 @@ function vttToText(vtt: string): string {
 export async function readVideoKnowledge(
   account: string,
   postId: string,
-): Promise<{ note: string | null; transcript: string | null }> {
+): Promise<{ note: string | null; transcript: string | null; noteMeta: NoteMeta | null }> {
   assertSafeSegment(account);
   assertSafeSegment(postId);
   let note: string | null = null;
@@ -72,7 +72,17 @@ export async function readVideoKnowledge(
       }
     }
   }
-  return { note, transcript };
+  let noteMeta: NoteMeta | null = null;
+  const metaPath = join(ROOT, "notes", account, "videos", `${postId}.meta.json`);
+  if (existsSync(metaPath)) {
+    try {
+      noteMeta = JSON.parse(await readFile(metaPath, "utf-8")) as NoteMeta;
+    } catch {
+      /* corrupt sidecar */
+    }
+  }
+
+  return { note, transcript, noteMeta };
 }
 
 /** Maps a result path back to the account + post it came from. */

@@ -8,7 +8,7 @@
  * falls back to whatever Whisper backend is configured (CPU is fine, just slower).
  */
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { ROOT, assertSafeSegment } from "@/server/paths";
 import * as repo from "@/server/db/repository";
@@ -48,6 +48,10 @@ export function claudeAvailable(): Promise<boolean> {
 
 export function notePathFor(account: string, postId: string): string {
   return join(ROOT, "notes", account, "videos", `${postId}.md`);
+}
+
+export function metaPathFor(account: string, postId: string): string {
+  return join(ROOT, "notes", account, "videos", `${postId}.meta.json`);
 }
 
 function buildPrompt(account: string, postId: string, origin: string, absVideo: string): string {
@@ -92,7 +96,7 @@ export function generateNote(
       // (not as an argv string) so there's nothing for the shell to re-parse.
       child = spawn(
         CLAUDE,
-        ["-p", "--permission-mode", "acceptEdits", "--allowedTools", NOTE_TOOLS],
+        ["-p", "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", NOTE_TOOLS],
         { cwd: ROOT, env: process.env, windowsHide: true, shell: true, signal },
       );
       child.stdin?.write(prompt);
@@ -101,14 +105,36 @@ export function generateNote(
       resolve({ ok: false, error: (e as Error).message });
       return;
     }
+    let out = "";
     let err = "";
+    child.stdout?.on("data", (d) => (out += d));
     child.stderr?.on("data", (d) => (err += d));
-    child.stdout?.on("data", () => {}); // drain so it doesn't block
     child.on("error", (e) => resolve({ ok: false, error: e.message }));
     child.on("close", (code) => {
       // Success = the note file now exists (more reliable than parsing the agent's text).
-      if (existsSync(notePathFor(account, postId))) resolve({ ok: true });
-      else resolve({ ok: false, error: err.slice(-300).trim() || `claude saiu com código ${code} sem gravar a nota` });
+      if (!existsSync(notePathFor(account, postId))) {
+        resolve({ ok: false, error: err.slice(-300).trim() || `claude saiu com código ${code} sem gravar a nota` });
+        return;
+      }
+      // Best-effort: persist token usage from the JSON result as a sidecar.
+      try {
+        const res = JSON.parse(out);
+        const u = res.usage ?? {};
+        writeFileSync(
+          metaPathFor(account, postId),
+          JSON.stringify({
+            inputTokens:
+              (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0),
+            outputTokens: u.output_tokens ?? 0,
+            costUsd: typeof res.total_cost_usd === "number" ? res.total_cost_usd : null,
+            generatedAt: new Date().toISOString(),
+          }),
+          "utf-8",
+        );
+      } catch {
+        /* usage capture is best-effort */
+      }
+      resolve({ ok: true });
     });
   });
 }

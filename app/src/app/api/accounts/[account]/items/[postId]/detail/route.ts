@@ -13,8 +13,8 @@ export async function GET(
   const { account, postId } = await params;
   const item = repo.getItem(account, postId);
   if (!item) return Response.json({ error: "item não encontrado" }, { status: 404 });
-  const { note, transcript } = await readVideoKnowledge(account, postId);
+  const { note, transcript, noteMeta } = await readVideoKnowledge(account, postId);
   const acc = repo.getAccount(account);
   const webUrl = acc ? getProvider(acc.network).webUrl(account, postId, item.origin) : null;
-  return Response.json({ item, note, transcript, webUrl });
+  return Response.json({ item, note, transcript, webUrl, noteMeta });
 }

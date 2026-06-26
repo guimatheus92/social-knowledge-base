@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { SearchFilterBar } from "@/components/library/SearchFilterBar";
@@ -14,7 +14,26 @@ import type { Item } from "@/lib/types";
 export function LibraryView({ account }: { account: string }) {
   const { t, locale } = useI18n();
   const [filters, setFilters] = useState<ItemFilters>({ sort: "date" });
-  const [selected, setSelected] = useState<Item | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Reflect the open video in the URL (?v=<id>) — shareable + survives a reload.
+  useEffect(() => {
+    const v = new URLSearchParams(window.location.search).get("v");
+    if (v) setSelectedId(v);
+  }, []);
+
+  function openVideo(item: Item) {
+    setSelectedId(item.postId);
+    const url = new URL(window.location.href);
+    url.searchParams.set("v", item.postId);
+    window.history.replaceState(null, "", url.toString());
+  }
+  function closeVideo() {
+    setSelectedId(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("v");
+    window.history.replaceState(null, "", url.toString());
+  }
   const { data: stats } = useStats(account);
   const total = stats?.counts.total ?? 0;
 
@@ -39,14 +58,14 @@ export function LibraryView({ account }: { account: string }) {
       </header>
 
       <SearchFilterBar value={filters} onChange={setFilters} />
-      <LibraryGrid account={account} filters={filters} onSelect={setSelected} />
+      <LibraryGrid account={account} filters={filters} onSelect={openVideo} />
 
       <VideoDetailDialog
         account={account}
-        postId={selected?.postId ?? null}
-        open={selected !== null}
+        postId={selectedId}
+        open={selectedId !== null}
         onOpenChange={(o) => {
-          if (!o) setSelected(null);
+          if (!o) closeVideo();
         }}
       />
     </main>

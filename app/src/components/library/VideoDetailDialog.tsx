@@ -1,8 +1,9 @@
 "use client";
+import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Copy, ExternalLink, FileText, Loader2, Play, ScrollText, Sparkles } from "lucide-react";
+import { Copy, Download, ExternalLink, FileText, Loader2, Play, RefreshCw, ScrollText, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -13,9 +14,25 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
 import { formatBytes, formatDuration } from "@/lib/format";
 import { useT } from "@/i18n/I18nProvider";
+
+function IconBtn({ children, label, onClick }: { children: ReactNode; label: string; onClick: () => void }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button type="button" variant="ghost" size="icon-sm" onClick={onClick} aria-label={label}>
+            {children}
+          </Button>
+        }
+      />
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 /** Opens a single video's knowledge: poster + metadata + curated note + transcript. */
 export function VideoDetailDialog({
@@ -66,14 +83,32 @@ export function VideoDetailDialog({
     }
   }
 
-  function copyNotePath() {
+  function copyText(text: string) {
     navigator.clipboard
-      ?.writeText(`notes/${account}/videos/${postId}.md`)
-      .then(() => toast.success(t("detail.pathCopied")))
+      ?.writeText(text)
+      .then(() => toast.success(t("detail.copied")))
       .catch(() => {});
   }
 
+  function copyNotePath() {
+    copyText(`notes/${account}/videos/${postId}.md`);
+  }
+
+  function downloadNote() {
+    if (!data?.note || !postId) return;
+    const blob = new Blob([data.note], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${postId}.md`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   const item = data?.item;
+  const tokens = data?.noteMeta ? data.noteMeta.inputTokens + data.noteMeta.outputTokens : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,7 +136,7 @@ export function VideoDetailDialog({
 
           {data && (
             <>
-              {/* actions — a full-width row at the top, so nothing floats next to the poster */}
+              {/* actions — full-width row at the top */}
               <div className="flex flex-wrap gap-2">
                 {data.webUrl && (
                   <Button
@@ -143,9 +178,32 @@ export function VideoDetailDialog({
 
               {/* note */}
               <section className="flex flex-col gap-2">
-                <h3 className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  <FileText className="size-3.5" /> {t("detail.note")}
-                </h3>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <h3 className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    <FileText className="size-3.5" /> {t("detail.note")}
+                  </h3>
+                  {data.note && (
+                    <span className="text-[11px] text-muted-foreground tabular-nums">
+                      {data.note.length.toLocaleString()} {t("detail.chars")}
+                      {tokens != null ? ` · ${tokens.toLocaleString()} tokens` : ""}
+                    </span>
+                  )}
+                  {data.note && (
+                    <div className="ml-auto flex items-center gap-1">
+                      <IconBtn label={t("detail.copy")} onClick={() => copyText(data.note as string)}>
+                        <Copy className="size-3.5" />
+                      </IconBtn>
+                      <IconBtn label={t("detail.downloadMd")} onClick={downloadNote}>
+                        <Download className="size-3.5" />
+                      </IconBtn>
+                      <Button variant="outline" size="sm" onClick={() => gen.mutate()} disabled={gen.isPending}>
+                        {gen.isPending ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+                        {t("detail.regenerate")}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
                 {data.note ? (
                   <div className="md-body text-sm">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.note}</ReactMarkdown>
@@ -165,9 +223,18 @@ export function VideoDetailDialog({
 
               {/* transcript */}
               <section className="flex flex-col gap-2">
-                <h3 className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  <ScrollText className="size-3.5" /> {t("detail.transcript")}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    <ScrollText className="size-3.5" /> {t("detail.transcript")}
+                  </h3>
+                  {data.transcript && (
+                    <div className="ml-auto">
+                      <IconBtn label={t("detail.copy")} onClick={() => copyText(data.transcript as string)}>
+                        <Copy className="size-3.5" />
+                      </IconBtn>
+                    </div>
+                  )}
+                </div>
                 {data.transcript ? (
                   <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
                     {data.transcript}
