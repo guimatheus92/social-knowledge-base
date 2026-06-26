@@ -116,7 +116,7 @@ export function AnalysisSettingsPanel() {
                 <Input
                   value={cfg.whisperLanguage}
                   onChange={(e) => patch({ whisperLanguage: e.target.value })}
-                  placeholder="pt"
+                  placeholder="auto"
                 />
               </div>
             </div>

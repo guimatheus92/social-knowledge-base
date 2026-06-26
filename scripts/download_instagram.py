@@ -57,34 +57,8 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-# Back-compat: older manifest.json files used Portuguese keys — migrate on load.
-_VIDEO_KEY_MAP = {
-    "origem": "origin", "baixado_em": "downloaded_at", "lido_em": "read_at",
-    "nota": "note", "erro": "error",
-}
-_STATUS_MAP = {"baixado": "downloaded", "lido": "read"}
-
-
-def _migrate_video(v: dict) -> dict:
-    out = {_VIDEO_KEY_MAP.get(k, k): val for k, val in v.items()}
-    if out.get("status") in _STATUS_MAP:
-        out["status"] = _STATUS_MAP[out["status"]]
-    return out
-
-
 def load_manifest(profile: str) -> dict:
     data = json.loads(MANIFEST.read_text(encoding="utf-8")) if MANIFEST.exists() else {}
-    # Migrate legacy Portuguese keys (perfil/sintese/per-video) to English.
-    if "perfil" in data and "profile" not in data:
-        data["profile"] = data.pop("perfil")
-    if "sintese" in data and "synthesis" not in data:
-        s = data.pop("sintese") or {}
-        data["synthesis"] = {
-            "last_overview_at": s.get("last_overview_at", s.get("ultimo_overview_em")),
-            "videos_in_last_overview": s.get("videos_in_last_overview", s.get("videos_no_ultimo_overview", 0)),
-        }
-    if isinstance(data.get("videos"), dict):
-        data["videos"] = {k: _migrate_video(v) for k, v in data["videos"].items()}
     if not data.get("profile"):
         data["profile"] = profile
     data.setdefault("videos", {})

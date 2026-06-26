@@ -28,7 +28,7 @@ Download ALL videos from an account (including "Highlights"), analyze each one, 
 1. Every video in the account (incl. Highlights) has a corresponding `.md` note.
 2. Each note captures what was **said** (transcription) **and shown** (OCR/visual) — not a generic summary.
 3. **Resumable** process: `manifest.json` records what was downloaded/read and *when*; pausing and resuming neither duplicates nor reprocesses.
-4. Readable **Portuguese** transcription — **faster-whisper `medium` on GPU** + domain glossary (proper nouns correct: Doha, Smiles, Iberia…), not the imprecise `tiny`/`small`.
+4. Readable transcription **in the audio's language** (auto-detected) — **faster-whisper `medium` on GPU** + domain glossary (proper nouns correct: Doha, Smiles, Iberia…), not the imprecise `tiny`/`small`.
 5. There is a per-profile index **and** a `notes/<profile>/OVERVIEW.md` (theme-by-theme summary) with links back to the notes.
 6. You can **query** later (RAG): `query.py "what did I learn about X?"` returns notes with a citation.
 

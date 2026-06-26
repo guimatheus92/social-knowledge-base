@@ -120,7 +120,11 @@ def main() -> None:
     p.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"],
                    help="auto = GPU if available, else CPU")
     p.add_argument("--beam", type=int, default=1)
+    p.add_argument("--language", default="auto",
+                   help="audio language code (e.g. pt, en); 'auto' = Whisper detects it per video")
     args = p.parse_args()
+    # Transcription follows the audio: 'auto' lets Whisper detect the language per clip.
+    lang = None if args.language == "auto" else args.language
 
     todo = items_to_do(args.account, args.category, args.limit)
     if not todo:
@@ -163,7 +167,7 @@ def main() -> None:
         try:
             t = time.time()
             segments, info = model.transcribe(
-                str(video), language="pt", initial_prompt=GLOSSARY, beam_size=args.beam,
+                str(video), language=lang, initial_prompt=GLOSSARY, beam_size=args.beam,
             )
             segs = [{"start": round(s.start, 2), "end": round(s.end, 2), "text": s.text.strip()} for s in segments]
         except Exception as e:  # noqa: BLE001

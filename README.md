@@ -55,7 +55,7 @@ cd ../mcp-video-analyzer && npm run build && cd -
 
 > instaloader was abandoned: its web GraphQL endpoint returns `401 "Please wait a few minutes"` since ~Jan/2025, on any account/IP. gallery-dl uses the browser cookies (the mobile API route, which IG still accepts).
 
-`.mcp.json` points Claude Code at the local MCP build (**v0.5.0**), with `WHISPER_MODEL`/`WHISPER_LANGUAGE`/`WHISPER_PROMPT` (glossary), `WHISPER_BIN` and `MCP_WRITE_SIDECARS=1`. Bulk transcription, however, runs on the **GPU** via `transcribe_gpu.py`; the MCP reuses those `.vtt`s and focuses on frames/OCR.
+`.mcp.json` points Claude Code at the local MCP build (**v0.5.0**), with `WHISPER_MODEL`/`WHISPER_PROMPT` (glossary), `WHISPER_BIN` and `MCP_WRITE_SIDECARS=1`. The transcription language is **auto-detected per video** (set a fixed `WHISPER_LANGUAGE` only to force one). Bulk transcription, however, runs on the **GPU** via `transcribe_gpu.py`; the MCP reuses those `.vtt`s and focuses on frames/OCR.
 
 > **Windows:** `pip` installs `whisper.exe` into Python's `Scripts/` folder, usually **not** on the PATH Claude Code inherits — so `.mcp.json` sets `WHISPER_BIN` to the full path. Confirm yours with `python -c "import os,sys;print(os.path.join(os.path.dirname(sys.executable),'Scripts','whisper.exe'))"`. The **MCP** doesn't need system ffmpeg (it uses the embedded `ffmpeg-static`); the **download** (gallery-dl/yt-dlp) does (Setup step 2), otherwise videos come out **with no audio**.
 
@@ -97,7 +97,7 @@ npm run test                           # Vitest (engine/parsers)
 
 ## Note language
 
-The LLM-written notes have a configurable language. The **default is English**; the transcription itself follows the audio (Whisper — e.g. `pt` for Portuguese videos), so a note can summarize Portuguese speech in English. Override the default at three levels (most specific wins):
+The LLM-written notes have a configurable language. The **default is English**; the transcription itself is **auto-detected per video** by Whisper (e.g. `pt` for Portuguese audio), so a note can summarize Portuguese speech in English. Override the note default at three levels (most specific wins):
 
 1. **Global default** — the analysis-settings panel (gear icon).
 2. **Per profile** — the picker next to "Generate missing notes" on the profile card (remembered for that profile's batch).

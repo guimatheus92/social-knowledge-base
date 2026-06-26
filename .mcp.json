@@ -5,7 +5,6 @@
       "args": ["C:/Users/guilh/repos/mcp-video-analyzer/dist/index.js"],
       "env": {
         "WHISPER_MODEL": "small",
-        "WHISPER_LANGUAGE": "pt",
         "WHISPER_BIN": "C:/Users/guilh/AppData/Local/Python/pythoncore-3.14-64/Scripts/whisper.exe",
         "WHISPER_PROMPT": "Glossário de milhas e pontos: Doha, Smiles, Livelo, Esfera, Iberia, Qatar Airways, TAP, Latam, Latam Pass, Azul, Azul Fidelidade, Azul Viagens, Clube Turbo, milheiro, Close Friends, Amex Centurion, Santander Unlimited, BRB Dux, Seat Spy, Banco Inter, Booking, emissões, executiva, bônus de transferência.",
         "MCP_WRITE_SIDECARS": "1",

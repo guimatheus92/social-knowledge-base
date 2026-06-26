@@ -25,20 +25,7 @@ interface LegacyVideo {
 }
 interface LegacyManifest {
   profile?: string;
-  videos?: Record<string, unknown>;
-}
-
-/** The legacy root manifest.json used Portuguese keys — read both (English-first). */
-function normVideo(raw: unknown): LegacyVideo {
-  const r = (raw ?? {}) as Record<string, unknown>;
-  return {
-    origin: (r.origin ?? r.origem) as string | undefined,
-    downloadedAt: (r.downloadedAt ?? r.baixado_em) as string | undefined,
-    readAt: (r.readAt ?? r.lido_em ?? null) as string | null,
-    note: (r.note ?? r.nota ?? null) as string | null,
-    status: r.status as string | undefined,
-    error: (r.error ?? r.erro ?? null) as string | null,
-  };
+  videos?: Record<string, LegacyVideo>;
 }
 
 const ORIGINS: Origin[] = ["highlight", "reel", "story", "post"];
@@ -90,13 +77,13 @@ export function importManifest(accountArg?: string): {
   const manifest: LegacyManifest = existsSync(LEGACY_MANIFEST)
     ? JSON.parse(readFileSync(LEGACY_MANIFEST, "utf-8"))
     : {};
-  const account = accountArg ?? manifest.profile ?? (manifest as { perfil?: string }).perfil ?? "";
+  const account = accountArg ?? manifest.profile ?? "";
   if (!account) throw new Error("No account: pass an argument or set `profile` in manifest.json");
 
   // 1. index the legacy entries by post_id (= the file stem of the key)
   const legacy = new Map<string, LegacyVideo & { key: string }>();
   for (const [key, v] of Object.entries(manifest.videos ?? {})) {
-    legacy.set(basename(key, extname(key)), { ...normVideo(v), key });
+    legacy.set(basename(key, extname(key)), { ...v, key });
   }
 
   const accountDir = join(DOWNLOADS, account);
@@ -113,7 +100,7 @@ export function importManifest(accountArg?: string): {
     const lg = legacy.get(m.postId);
     const st = statSync(m.file);
     const downloadedAt = lg?.downloadedAt ?? st.mtime.toISOString();
-    const status = lg?.status === "read" || lg?.status === "lido" || lg?.readAt ? "read" : "downloaded";
+    const status = lg?.status === "read" || lg?.readAt ? "read" : "downloaded";
     repo.upsertItem(account, {
       postId: m.postId,
       mediaType: m.mediaType,
