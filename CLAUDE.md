@@ -58,6 +58,7 @@ Há um app **Next.js 16 + TypeScript + Tailwind 4 + shadcn/ui (Base UI)** em [`a
 - **Engine:** `app/src/server/engine/` — `galleryDl.ts` (spawn `python -m gallery_dl`, parse stdout, **seedArchive** pra retomar sem re-baixar), `ffmpeg.ts` (injeta o ffmpeg no PATH), `jobManager.ts` (jobs por conta, abas em paralelo, serialização por cookies, SSE).
 - **Rodar:** `cd app && npm run dev` → http://localhost:3000. Cookies da conta de login ficam em `localStorage` (credencial; não versionar).
 - **Roda como servidor Node** (`next start`/`next dev`, runtime node — NÃO edge/serverless) por causa dos processos filhos + SSE.
+- **Tema/Design:** direção **Media Cinematic** (dark, glassy, acento coral→magenta→violet, Clash Display + Hanken + JetBrains Mono). Paleta e tokens documentados em [`DESIGN.md`](DESIGN.md); a fonte da verdade dos tokens é `app/src/app/globals.css`. O separador de seção é o `BrandRule` (gradiente da marca).
 
 ## MCP — leitura de vídeo (frames + OCR + transcrição)
 

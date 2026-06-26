@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { Aperture, ChevronLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BrandRule } from "@/components/BrandRule";
 import { useAccounts } from "@/hooks/useAccounts";
 import { api } from "@/lib/api";
 import { ConnectedAccountCard } from "@/components/account/ConnectedAccountCard";
@@ -169,10 +170,16 @@ export default function DashboardPage() {
             ))}
           </section>
 
-          {accounts && accounts.length > 0 && <DiskUsagePanel accounts={accounts} />}
+          {accounts && accounts.length > 0 && (
+            <>
+              <BrandRule />
+              <DiskUsagePanel accounts={accounts} />
+            </>
+          )}
         </>
       ) : (
         <>
+          <BrandRule />
           <button
             type="button"
             onClick={() => setActiveNetwork(null)}
@@ -201,7 +208,12 @@ export default function DashboardPage() {
             ))}
           </section>
 
-          {activeAccounts.length > 0 && <DiskUsagePanel accounts={activeAccounts} />}
+          {activeAccounts.length > 0 && (
+            <>
+              <BrandRule />
+              <DiskUsagePanel accounts={activeAccounts} />
+            </>
+          )}
         </>
       )}
     </main>
