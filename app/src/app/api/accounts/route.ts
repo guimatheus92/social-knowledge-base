@@ -32,8 +32,8 @@ export async function POST(req: Request): Promise<Response> {
   let body;
   try {
     body = NewAccount.parse(await req.json());
-  } catch (e) {
-    return Response.json({ error: "Corpo inválido", detail: String(e) }, { status: 400 });
+  } catch {
+    return Response.json({ error: "Corpo inválido" }, { status: 400 });
   }
   repo.upsertAccount({
     account: body.account,

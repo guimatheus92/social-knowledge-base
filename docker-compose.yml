@@ -9,7 +9,9 @@ services:
     image: social-knowledge-base
     container_name: social-knowledge-base
     ports:
-      - "3000:3000"
+      # Bind to localhost only — this app has NO auth (single-user local tool).
+      # Only change to "3000:3000" (all interfaces) if you put it behind auth/a proxy.
+      - "127.0.0.1:3000:3000"
     volumes:
       - ./data:/data
     environment:

@@ -36,8 +36,8 @@ export async function PATCH(
   let body;
   try {
     body = Patch.parse(await req.json());
-  } catch (e) {
-    return Response.json({ error: "Corpo inválido", detail: String(e) }, { status: 400 });
+  } catch {
+    return Response.json({ error: "Corpo inválido" }, { status: 400 });
   }
   repo.updateAccountSettings(account, {
     mediaTypes: body.media as MediaType[] | undefined,

@@ -2,7 +2,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { MANIFESTS } from "@/server/paths";
+import { MANIFESTS, assertSafeSegment } from "@/server/paths";
 import { SCHEMA } from "@/server/db/schema";
 
 // Connection cache (single writer = Node process; WAL allows concurrent reads).
@@ -13,6 +13,7 @@ export function dbPath(account: string): string {
 }
 
 export function openDb(account: string): DatabaseSync {
+  assertSafeSegment(account); // never let a crafted account escape manifests/
   const existing = cache.get(account);
   if (existing) return existing;
   mkdirSync(MANIFESTS, { recursive: true });

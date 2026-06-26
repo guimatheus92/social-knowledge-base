@@ -7,7 +7,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
-import { ROOT } from "@/server/paths";
+import { ROOT, assertSafeSegment } from "@/server/paths";
 import * as repo from "@/server/db/repository";
 import type { SearchHit } from "@/lib/types";
 
@@ -36,6 +36,8 @@ export async function readVideoKnowledge(
   account: string,
   postId: string,
 ): Promise<{ note: string | null; transcript: string | null }> {
+  assertSafeSegment(account);
+  assertSafeSegment(postId);
   let note: string | null = null;
   const notePath = join(ROOT, "notes", account, "videos", `${postId}.md`);
   if (existsSync(notePath)) {

@@ -21,8 +21,8 @@ export async function PUT(req: Request): Promise<Response> {
   let body;
   try {
     body = Body.parse(await req.json());
-  } catch (e) {
-    return Response.json({ error: "Config inválida", detail: String(e) }, { status: 400 });
+  } catch {
+    return Response.json({ error: "Config inválida" }, { status: 400 });
   }
   setAnalysisConfig(body);
   return Response.json(getAnalysisConfig());
