@@ -19,9 +19,9 @@ Download ALL videos from an account (including "Highlights"), analyze each one, 
 
 ## What to do (agent workflow)
 
-- Generate notes → follow `prompts/build-notes.md`. **Always 1 video at a time**; skip the ones that have `lido_em != null` in `manifest.json`.
+- Generate notes → follow `prompts/build-notes.md`. **Always 1 video at a time**; skip the ones that have `read_at != null` in `manifest.json`.
 - Summary → follow `prompts/synthesize-overview.md`.
-- **Never** reprocess a video that is already `lido`. **Never** dump dozens of videos into the same context (it blows up and gets expensive).
+- **Never** reprocess a video that is already `read`. **Never** dump dozens of videos into the same context (it blows up and gets expensive).
 
 ## Definition of success (NEVER forget)
 

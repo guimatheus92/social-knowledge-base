@@ -16,22 +16,35 @@ import * as repo from "@/server/db/repository";
 import { TAB_ORIGIN, type MediaType, type Origin, type Tab } from "@/lib/types";
 
 interface LegacyVideo {
-  origem?: string;
-  baixado_em?: string;
-  lido_em?: string | null;
-  nota?: string | null;
+  origin?: string;
+  downloadedAt?: string;
+  readAt?: string | null;
+  note?: string | null;
   status?: string;
-  erro?: string | null;
+  error?: string | null;
 }
 interface LegacyManifest {
-  perfil?: string;
-  videos?: Record<string, LegacyVideo>;
+  profile?: string;
+  videos?: Record<string, unknown>;
+}
+
+/** The legacy root manifest.json used Portuguese keys — read both (English-first). */
+function normVideo(raw: unknown): LegacyVideo {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    origin: (r.origin ?? r.origem) as string | undefined,
+    downloadedAt: (r.downloadedAt ?? r.baixado_em) as string | undefined,
+    readAt: (r.readAt ?? r.lido_em ?? null) as string | null,
+    note: (r.note ?? r.nota ?? null) as string | null,
+    status: r.status as string | undefined,
+    error: (r.error ?? r.erro ?? null) as string | null,
+  };
 }
 
 const ORIGINS: Origin[] = ["highlight", "reel", "story", "post"];
 
-function mapOrigin(origem: string | undefined): Origin {
-  const head = String(origem ?? "post").split(":")[0];
+function mapOrigin(origin: string | undefined): Origin {
+  const head = String(origin ?? "post").split(":")[0];
   return (ORIGINS as string[]).includes(head) ? (head as Origin) : "post";
 }
 
@@ -77,13 +90,13 @@ export function importManifest(accountArg?: string): {
   const manifest: LegacyManifest = existsSync(LEGACY_MANIFEST)
     ? JSON.parse(readFileSync(LEGACY_MANIFEST, "utf-8"))
     : {};
-  const account = accountArg ?? manifest.perfil ?? "";
-  if (!account) throw new Error("No account: pass an argument or set `perfil` in manifest.json");
+  const account = accountArg ?? manifest.profile ?? (manifest as { perfil?: string }).perfil ?? "";
+  if (!account) throw new Error("No account: pass an argument or set `profile` in manifest.json");
 
   // 1. index the legacy entries by post_id (= the file stem of the key)
   const legacy = new Map<string, LegacyVideo & { key: string }>();
   for (const [key, v] of Object.entries(manifest.videos ?? {})) {
-    legacy.set(basename(key, extname(key)), { ...v, key });
+    legacy.set(basename(key, extname(key)), { ...normVideo(v), key });
   }
 
   const accountDir = join(DOWNLOADS, account);
@@ -99,8 +112,8 @@ export function importManifest(accountArg?: string): {
     seen.add(m.postId);
     const lg = legacy.get(m.postId);
     const st = statSync(m.file);
-    const downloadedAt = lg?.baixado_em ?? st.mtime.toISOString();
-    const status = lg?.status === "lido" || lg?.lido_em ? "read" : "downloaded";
+    const downloadedAt = lg?.downloadedAt ?? st.mtime.toISOString();
+    const status = lg?.status === "read" || lg?.status === "lido" || lg?.readAt ? "read" : "downloaded";
     repo.upsertItem(account, {
       postId: m.postId,
       mediaType: m.mediaType,
@@ -110,7 +123,7 @@ export function importManifest(accountArg?: string): {
       status: status as "read" | "downloaded",
       downloadedAt,
     });
-    if (lg?.lido_em) repo.markRead(account, m.postId, lg.lido_em, lg.nota ?? null);
+    if (lg?.readAt) repo.markRead(account, m.postId, lg.readAt, lg.note ?? null);
     if (!lg) addedFromDisk += 1;
   }
 
@@ -121,13 +134,13 @@ export function importManifest(accountArg?: string): {
     repo.upsertItem(account, {
       postId: pid,
       mediaType: "video",
-      origin: mapOrigin(lg.origem),
+      origin: mapOrigin(lg.origin),
       relPath: lg.key,
       status: "error",
-      downloadedAt: lg.baixado_em ?? null,
+      downloadedAt: lg.downloadedAt ?? null,
       error: "file missing on disk",
     });
-    if (lg.lido_em) repo.markRead(account, pid, lg.lido_em, lg.nota ?? null);
+    if (lg.readAt) repo.markRead(account, pid, lg.readAt, lg.note ?? null);
   }
     db.exec("COMMIT");
   } catch (e) {
