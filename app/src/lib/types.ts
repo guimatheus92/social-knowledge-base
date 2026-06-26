@@ -69,6 +69,8 @@ export interface Item {
 export interface Counts {
   total: number;
   byMedia: Record<MediaType, number>;
+  /** Bytes on disk per media type (for the disk breakdown). */
+  bytesByMedia: Record<MediaType, number>;
   byStatus: Record<string, number>;
   byOrigin: Record<string, number>;
   bytesTotal: number;

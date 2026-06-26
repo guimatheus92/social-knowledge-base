@@ -245,6 +245,7 @@ export function getCounts(account: string): Counts {
   const counts: Counts = {
     total: 0,
     byMedia: { image: 0, video: 0 },
+    bytesByMedia: { image: 0, video: 0 },
     byStatus: {},
     byOrigin: {},
     bytesTotal: 0,
@@ -252,11 +253,13 @@ export function getCounts(account: string): Counts {
   };
   for (const r of rows) {
     const n = num(r.n);
+    const bytes = num(r.bytes);
     counts.total += n;
     counts.byMedia[r.media_type as MediaType] += n;
+    counts.bytesByMedia[r.media_type as MediaType] += bytes;
     counts.byStatus[r.status] = (counts.byStatus[r.status] ?? 0) + n;
     counts.byOrigin[r.origin] = (counts.byOrigin[r.origin] ?? 0) + n;
-    counts.bytesTotal += num(r.bytes);
+    counts.bytesTotal += bytes;
     if (r.status === "downloaded" || r.status === "reading" || r.status === "read") {
       counts.downloaded += n;
     }

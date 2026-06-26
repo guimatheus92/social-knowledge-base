@@ -1,11 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Aperture } from "lucide-react";
+import { Aperture, ChevronLeft } from "lucide-react";
 import { useAccounts } from "@/hooks/useAccounts";
 import { api } from "@/lib/api";
 import { ConnectedAccountCard } from "@/components/account/ConnectedAccountCard";
+import { NetworkCard } from "@/components/account/NetworkCard";
 import { LoginAccountPanel } from "@/components/LoginAccountPanel";
 import { AddAccountDialog } from "@/components/AddAccountDialog";
 import { DownloadByLinkDialog } from "@/components/DownloadByLinkDialog";
@@ -13,8 +14,9 @@ import { AnalysisSettingsPanel } from "@/components/AnalysisSettingsPanel";
 import { DiskUsagePanel } from "@/components/DiskUsagePanel";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { Hero } from "@/components/Hero";
+import { NETWORKS, networkMeta } from "@/lib/networks";
 import { useT } from "@/i18n/I18nProvider";
-import type { MediaType, Tab } from "@/lib/types";
+import type { AccountSummary, MediaType, Tab } from "@/lib/types";
 
 const COOKIES_KEY = "igkb.cookiesPath";
 
@@ -24,6 +26,8 @@ export default function DashboardPage() {
   const t = useT();
   const [cookiesPath, setCookiesPath] = useState("");
   const [cookieStatus, setCookieStatus] = useState<"valid" | "expired" | "unknown">("unknown");
+  // Drill-in: null = network overview; otherwise show that network's accounts.
+  const [activeNetwork, setActiveNetwork] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem(COOKIES_KEY);
@@ -102,6 +106,20 @@ export default function DashboardPage() {
     }
   };
 
+  // Group accounts by network so each network is its own "folder".
+  const byNetwork = useMemo(() => {
+    const m = new Map<string, AccountSummary[]>();
+    for (const a of accounts ?? []) {
+      const arr = m.get(a.network) ?? [];
+      arr.push(a);
+      m.set(a.network, arr);
+    }
+    return m;
+  }, [accounts]);
+
+  const presentNetworks = NETWORKS.filter((n) => byNetwork.has(n.id));
+  const activeAccounts = activeNetwork ? byNetwork.get(activeNetwork) ?? [] : [];
+
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
       <header className="flex items-center justify-between gap-4">
@@ -124,21 +142,60 @@ export default function DashboardPage() {
 
       <Hero accounts={accounts} />
 
-      <LoginAccountPanel cookiesPath={cookiesPath} status={cookieStatus} onChange={updateCookies} />
+      {activeNetwork === null ? (
+        <>
+          <section className="space-y-4">
+            {isLoading && (
+              <p className="text-sm text-muted-foreground">{t("app.loadingAccounts")}</p>
+            )}
+            {accounts && accounts.length === 0 && (
+              <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+                {t("app.emptyState", { action: t("addAccount.trigger") })}
+              </div>
+            )}
+            {presentNetworks.map((n) => (
+              <NetworkCard
+                key={n.id}
+                network={n.id}
+                accounts={byNetwork.get(n.id) ?? []}
+                onEnter={() => setActiveNetwork(n.id)}
+              />
+            ))}
+          </section>
 
-      <section className="space-y-4">
-        {isLoading && <p className="text-sm text-muted-foreground">{t("app.loadingAccounts")}</p>}
-        {accounts && accounts.length === 0 && (
-          <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-            {t("app.emptyState", { action: t("addAccount.trigger") })}
-          </div>
-        )}
-        {accounts?.map((a) => (
-          <ConnectedAccountCard key={a.account} summary={a} cookiesPath={cookiesPath} />
-        ))}
-      </section>
+          {accounts && accounts.length > 0 && <DiskUsagePanel accounts={accounts} />}
+        </>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => setActiveNetwork(null)}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-muted-foreground transition hover:bg-white/5 hover:text-foreground"
+          >
+            <ChevronLeft className="size-4" />
+            <span
+              className="grid size-5 place-items-center rounded-md text-white"
+              style={{ background: networkMeta(activeNetwork).gradient }}
+            >
+              {(() => {
+                const Icon = networkMeta(activeNetwork).Icon;
+                return <Icon className="size-3" />;
+              })()}
+            </span>
+            <span className="font-medium text-foreground">{networkMeta(activeNetwork).label}</span>
+          </button>
 
-      {accounts && accounts.length > 0 && <DiskUsagePanel />}
+          <LoginAccountPanel cookiesPath={cookiesPath} status={cookieStatus} onChange={updateCookies} />
+
+          <section className="space-y-4">
+            {activeAccounts.map((a) => (
+              <ConnectedAccountCard key={a.account} summary={a} cookiesPath={cookiesPath} />
+            ))}
+          </section>
+
+          {activeAccounts.length > 0 && <DiskUsagePanel accounts={activeAccounts} />}
+        </>
+      )}
     </main>
   );
 }
