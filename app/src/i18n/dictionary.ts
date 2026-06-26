@@ -250,6 +250,7 @@ export const messages = {
     "bulk.downloadAll": "Baixar todas",
     "bulk.notesAll": "Gerar todas as notas",
     "bulk.downloadStarted": "Download enfileirado para {n} perfis",
+    "bulk.downloadFailed": "Falha ao iniciar: {accounts}",
     "lang.label": "Idioma",
   },
   en: {
@@ -497,6 +498,7 @@ export const messages = {
     "bulk.downloadAll": "Download all",
     "bulk.notesAll": "Generate all notes",
     "bulk.downloadStarted": "Queued downloads for {n} profiles",
+    "bulk.downloadFailed": "Failed to start: {accounts}",
     "lang.label": "Language",
   },
 } satisfies Record<Locale, Record<string, string>>;

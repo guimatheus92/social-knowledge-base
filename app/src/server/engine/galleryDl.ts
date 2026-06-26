@@ -266,6 +266,9 @@ export function runTab(o: TabRunOptions): Promise<TabRunResult> {
     });
 
     let lastTs = Date.now();
+    // Hoisted: where this account's posters go (matches the thumb route). Stable
+    // for the run, so resolve it once instead of per downloaded file.
+    const thumbDir = repo.getAccount(o.account)?.savePath ?? join(ROOT, "downloads", o.account);
     const out = createInterface({ input: child.stdout });
     out.on("line", (line) => {
       if (o.simulate) {
@@ -309,8 +312,7 @@ export function runTab(o: TabRunOptions): Promise<TabRunResult> {
       });
       // Pre-generate the poster (background, capped) so the gallery is instant later.
       if (m.mediaType === "video") {
-        const saveDir = repo.getAccount(o.account)?.savePath ?? join(ROOT, "downloads", o.account);
-        void ensureThumb(m.path, thumbPathFor(saveDir, m.postId));
+        void ensureThumb(m.path, thumbPathFor(thumbDir, m.postId));
       }
       result.downloaded += 1;
       o.emit({ t: "file_done", tab: o.tab, postId: m.postId, mediaType: m.mediaType, bytes, elapsedMs, skipped: false });

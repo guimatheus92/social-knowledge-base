@@ -280,7 +280,9 @@ class NotesRunner {
         assertSafeSegment(a);
         return { account: a, postIds: this.missing(a).map((i) => i.postId) };
       })
-      .filter((w) => w.postIds.length > 0);
+      // Skip accounts with nothing to do, and any already mid-run (a per-account
+      // batch) so we never spawn a second Claude session writing the same notes.
+      .filter((w) => w.postIds.length > 0 && !this.isRunning(w.account));
     const abort = new AbortController();
     this.bulk = {
       status: "running",
@@ -304,6 +306,11 @@ class NotesRunner {
     const bulk = this.bulk!;
     for (const w of work) {
       if (abort.signal.aborted) break;
+      // A per-account run may have started after startBulk filtered — never clobber it.
+      if (this.isRunning(w.account)) {
+        bulk.accountsDone += 1;
+        continue;
+      }
       bulk.currentAccount = w.account;
       // A per-account job so that account's card shows live progress; shares the bulk abort.
       const job: NotesJob = {

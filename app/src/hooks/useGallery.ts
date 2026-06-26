@@ -1,18 +1,12 @@
 "use client";
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import type { GalleryQuery } from "@/lib/types";
 
 export const GALLERY_LIMIT = 48;
 
-export interface GalleryFilters {
-  q?: string;
-  profile?: string;
-  network?: string;
-  media?: string;
-  origin?: string;
-  sort?: "date" | "size" | "duration";
-  order?: "asc" | "desc";
-}
+/** The Gallery's filter/sort state — same shape the server validates. */
+export type GalleryFilters = GalleryQuery;
 
 export function useGallery(f: GalleryFilters) {
   return useInfiniteQuery({

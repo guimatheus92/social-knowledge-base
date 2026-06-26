@@ -26,6 +26,15 @@ export function thumbPathFor(saveDir: string, postId: string): string {
   return join(saveDir, ".thumbs", `${postId}.jpg`);
 }
 
+// A systemic failure (ffmpeg missing, disk full, .thumbs not writable) would
+// otherwise be invisible — every poster just 404s. Surface it once.
+let warned = false;
+function warnOnce(msg: string): void {
+  if (warned) return;
+  warned = true;
+  console.warn(`[thumbnails] ${msg} — further such warnings are suppressed`);
+}
+
 /**
  * Generates the poster (if it doesn't exist yet). Returns true if the file exists at the end.
  * Cancelable: if the `signal` aborts (e.g. the user left the page), it doesn't start /
@@ -40,11 +49,19 @@ export function ensureThumb(
   if (signal?.aborted) return Promise.resolve(false);
   const ff = ffmpegPath();
   if (!ff || !existsSync(videoAbsPath)) return Promise.resolve(false);
-  mkdirSync(dirname(thumbAbs), { recursive: true });
   return withLimit(
     () =>
       new Promise<boolean>((resolve) => {
         if (signal?.aborted) {
+          resolve(false);
+          return;
+        }
+        // Inside the promise so a perms error never throws synchronously to a
+        // fire-and-forget caller (the post-download hook / the warm backfill).
+        try {
+          mkdirSync(dirname(thumbAbs), { recursive: true });
+        } catch (e) {
+          warnOnce(`cannot create .thumbs dir: ${(e as Error).message}`);
           resolve(false);
           return;
         }
@@ -67,7 +84,10 @@ export function ensureThumb(
           resolve(val);
         };
         p.on("close", () => done(existsSync(thumbAbs)));
-        p.on("error", () => done(false));
+        p.on("error", (e) => {
+          warnOnce(`ffmpeg failed: ${e.message}`);
+          done(false);
+        });
       }),
   );
 }

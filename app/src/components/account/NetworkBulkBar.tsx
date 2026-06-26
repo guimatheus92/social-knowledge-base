@@ -45,6 +45,7 @@ export function NetworkBulkBar({
     mutationFn: async () => {
       if (!cookiesPath) throw new Error(t("cardc.cookiesRequired"));
       let started = 0;
+      const failed: string[] = [];
       // The job manager serializes by cookies, so these queue and run in turn.
       for (const a of accounts) {
         try {
@@ -58,13 +59,16 @@ export function NetworkBulkBar({
           });
           started += 1;
         } catch {
-          /* a profile that fails to start is skipped; the rest continue */
+          failed.push(a.account); // don't abort the rest, but surface it below
         }
       }
-      return started;
+      return { started, failed };
     },
-    onSuccess: (n) => {
-      toast.success(t("bulk.downloadStarted", { n }));
+    onSuccess: ({ started, failed }) => {
+      if (started > 0) toast.success(t("bulk.downloadStarted", { n: started }));
+      if (failed.length > 0) {
+        toast.error(t("bulk.downloadFailed", { accounts: failed.map((a) => `@${a}`).join(", ") }));
+      }
       qc.invalidateQueries({ queryKey: ["accounts"] });
     },
     onError: (e) => toast.error((e as Error).message),

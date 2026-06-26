@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useAccounts } from "@/hooks/useAccounts";
 import { networkMeta } from "@/lib/networks";
 import type { GalleryFilters } from "@/hooks/useGallery";
+import type { MediaType, Origin } from "@/lib/types";
 import { useT } from "@/i18n/I18nProvider";
 
 /** Rich filter/sort row for the global Gallery: profile, network, media, origin, sort, order. */
@@ -106,7 +107,7 @@ export function GalleryFilterBar({
 
       <Select
         value={value.media ?? "all"}
-        onValueChange={(val) => set({ media: val && val !== "all" ? val : undefined })}
+        onValueChange={(val) => set({ media: val && val !== "all" ? (val as MediaType) : undefined })}
       >
         <SelectTrigger size="sm" className="w-32">
           <SelectValue>{mediaLabel}</SelectValue>
@@ -120,7 +121,7 @@ export function GalleryFilterBar({
 
       <Select
         value={value.origin ?? "all"}
-        onValueChange={(val) => set({ origin: val && val !== "all" ? val : undefined })}
+        onValueChange={(val) => set({ origin: val && val !== "all" ? (val as Origin) : undefined })}
       >
         <SelectTrigger size="sm" className="w-36">
           <SelectValue>{originLabel}</SelectValue>

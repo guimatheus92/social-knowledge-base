@@ -174,6 +174,19 @@ export interface GalleryItem extends Item {
   network: string;
 }
 
+/** Filters + sort for the global Gallery — one shape shared by the client hook
+ *  and the server aggregator so `media`/`origin`/`sort`/`order` stay typed. */
+export interface GalleryQuery {
+  q?: string;
+  /** A single profile (account name). */
+  profile?: string;
+  network?: string;
+  media?: MediaType;
+  origin?: Origin;
+  sort?: "date" | "size" | "duration";
+  order?: "asc" | "desc";
+}
+
 /** A RAG search result (transcript or note chunk) mapped back to its source. */
 export interface SearchHit {
   path: string;

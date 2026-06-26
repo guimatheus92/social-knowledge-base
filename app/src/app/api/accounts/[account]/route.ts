@@ -1,6 +1,7 @@
 import { z } from "zod";
 import * as repo from "@/server/db/repository";
 import { jobManager } from "@/server/engine/jobManager";
+import { NOTE_LANG_CODES } from "@/lib/languages";
 import type { MediaType, Tab } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -26,7 +27,7 @@ const Patch = z.object({
   tabs: z.array(z.enum(["highlights", "reels", "stories", "posts"])).optional(),
   savePath: z.string().optional(),
   parallelism: z.number().int().min(1).max(4).optional(),
-  noteLanguage: z.string().min(2).max(8).optional(),
+  noteLanguage: z.string().refine((v) => NOTE_LANG_CODES.includes(v), "unsupported note language").optional(),
 });
 
 export async function PATCH(

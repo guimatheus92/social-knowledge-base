@@ -5,20 +5,9 @@
  * collection ever dwarfs RAM, switch to ATTACH + a UNION query.
  */
 import { getAccount, listAccountNames, listItems } from "@/server/db/repository";
-import type { GalleryItem, MediaType, Origin } from "@/lib/types";
+import type { GalleryItem, GalleryQuery } from "@/lib/types";
 
-export interface GalleryOpts {
-  q?: string;
-  /** Restrict to a single profile (account name). */
-  profile?: string;
-  network?: string;
-  media?: MediaType;
-  origin?: Origin;
-  sort?: "date" | "size" | "duration";
-  order?: "asc" | "desc";
-  limit?: number;
-  offset?: number;
-}
+export type GalleryOpts = GalleryQuery & { limit?: number; offset?: number };
 
 export function listGallery(opts: GalleryOpts): { items: GalleryItem[]; total: number } {
   const names = opts.profile ? [opts.profile] : listAccountNames();

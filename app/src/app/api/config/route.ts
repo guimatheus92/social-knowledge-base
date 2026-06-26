@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getAnalysisConfig, setAnalysisConfig } from "@/server/config/mcp";
+import { NOTE_LANG_CODES } from "@/lib/languages";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ const Body = z.object({
   maxFrames: z.number().int().min(1).max(60),
   threshold: z.number().min(0).max(1),
   ocrLanguage: z.string().min(2).max(40),
-  noteLanguage: z.string().min(2).max(8),
+  noteLanguage: z.string().refine((v) => NOTE_LANG_CODES.includes(v), "unsupported note language"),
 });
 
 export async function PUT(req: Request): Promise<Response> {
