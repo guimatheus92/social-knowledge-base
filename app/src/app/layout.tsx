@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { Providers } from "@/components/providers";
+import { SiteFooter } from "@/components/SiteFooter";
 import "./globals.css";
 
 // Body + UI text — a grotesque with warmth and a steady rhythm at small sizes.
@@ -55,7 +56,10 @@ export default function RootLayout({
         suppressHydrationWarning
         className="min-h-full flex flex-col text-foreground"
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <SiteFooter />
+        </Providers>
       </body>
     </html>
   );
