@@ -120,6 +120,26 @@
       var(--background);
     background-attachment: fixed;
   }
+  /* Tailwind v4 no longer gives <button> a pointer cursor, so clickable things
+     were inconsistent (links had it, buttons didn't). Restore it for anything
+     interactive; disabled controls keep the default (Button also sets
+     pointer-events:none, so they never see this anyway). */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]):not([data-disabled]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="menuitemcheckbox"],
+  [role="option"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]),
+  [role="radio"]:not([aria-disabled="true"]),
+  [role="checkbox"]:not([aria-disabled="true"]),
+  summary,
+  label[for],
+  select:not(:disabled),
+  a[href] {
+    cursor: pointer;
+  }
 }
 
 @layer components {
