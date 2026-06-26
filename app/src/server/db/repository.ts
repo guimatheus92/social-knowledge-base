@@ -250,6 +250,7 @@ export function getCounts(account: string): Counts {
     byOrigin: {},
     bytesTotal: 0,
     downloaded: 0,
+    unnotedVideos: 0,
   };
   for (const r of rows) {
     const n = num(r.n);
@@ -262,6 +263,10 @@ export function getCounts(account: string): Counts {
     counts.bytesTotal += bytes;
     if (r.status === "downloaded" || r.status === "reading" || r.status === "read") {
       counts.downloaded += n;
+    }
+    // A video is "unnoted" once downloaded but not yet read (= no note written).
+    if (r.media_type === "video" && r.status === "downloaded") {
+      counts.unnotedVideos += n;
     }
   }
   return counts;

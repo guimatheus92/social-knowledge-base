@@ -75,6 +75,8 @@ export interface Counts {
   byOrigin: Record<string, number>;
   bytesTotal: number;
   downloaded: number;
+  /** Downloaded videos that don't have a curated note yet (note candidates). */
+  unnotedVideos: number;
 }
 
 /* ---- Job types (shared server↔UI; no runtime) ---- */
