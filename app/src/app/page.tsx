@@ -136,7 +136,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <LanguageToggle />
-          <Button variant="outline" render={<Link href="/search" />}>
+          <Button variant="outline" nativeButton={false} render={<Link href="/search" />}>
             <Search />
             {t("search.trigger")}
           </Button>
