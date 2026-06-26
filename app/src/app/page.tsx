@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const qc = useQueryClient();
   const t = useT();
   const [cookiesPath, setCookiesPath] = useState("");
+  const [cookieStatus, setCookieStatus] = useState<"valid" | "expired" | "unknown">("unknown");
 
   useEffect(() => {
     const saved = localStorage.getItem(COOKIES_KEY);
@@ -46,6 +47,22 @@ export default function DashboardPage() {
     setCookiesPath(p);
     localStorage.setItem(COOKIES_KEY, p);
   };
+
+  // Real cookie health: check the sessionid's own expiry (no network call).
+  useEffect(() => {
+    if (!cookiesPath) {
+      setCookieStatus("unknown");
+      return;
+    }
+    let cancelled = false;
+    api
+      .cookiesStatus(cookiesPath)
+      .then((r) => !cancelled && setCookieStatus(r.status))
+      .catch(() => !cancelled && setCookieStatus("unknown"));
+    return () => {
+      cancelled = true;
+    };
+  }, [cookiesPath]);
 
   const onAdd = async (data: {
     account: string;
@@ -107,7 +124,7 @@ export default function DashboardPage() {
 
       <Hero accounts={accounts} />
 
-      <LoginAccountPanel cookiesPath={cookiesPath} status="unknown" onChange={updateCookies} />
+      <LoginAccountPanel cookiesPath={cookiesPath} status={cookieStatus} onChange={updateCookies} />
 
       <section className="space-y-4">
         {isLoading && <p className="text-sm text-muted-foreground">{t("app.loadingAccounts")}</p>}

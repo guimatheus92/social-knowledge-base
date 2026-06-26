@@ -77,12 +77,22 @@ export const api = {
   startSingle: (body: { url: string; cookiesPath: string; media?: string[] }) =>
     jpost<JobSnapshot>("/api/jobs/single", body),
   stopJob: (account: string) => jpost<JobSnapshot>(`/api/jobs/${encodeURIComponent(account)}/stop`),
+  peek: (account: string, cookiesPath: string) =>
+    jpost<{ newCount: number; checked: number; tab: string }>(
+      `/api/accounts/${encodeURIComponent(account)}/peek`,
+      { cookiesPath },
+    ),
   patchAccount: (account: string, body: Partial<{ media: string[]; tabs: string[]; savePath: string; parallelism: number }>) =>
     jpatch<AccountSummary>(`/api/accounts/${encodeURIComponent(account)}`, body),
   pickDir: (current?: string) =>
     jpost<{ path: string | null; cancelled: boolean }>("/api/fs/pick-dir", { current }),
   defaultDir: () => jget<{ path: string }>("/api/fs/default-dir"),
   cookiesDefault: () => jget<{ path: string | null }>("/api/auth/cookies-default"),
+  cookiesStatus: (path: string) =>
+    jpost<{ status: "valid" | "expired" | "unknown"; expiresAt?: string; reason?: string }>(
+      "/api/auth/cookies-status",
+      { path },
+    ),
   openDir: (path: string) => jpost<{ ok: boolean }>("/api/fs/open-dir", { path }),
   openFile: (account: string, postId: string) =>
     jpost<{ ok: boolean }>("/api/fs/open-file", { account, postId }),

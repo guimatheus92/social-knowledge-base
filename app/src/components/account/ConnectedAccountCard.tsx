@@ -64,6 +64,11 @@ export function ConnectedAccountCard({
     }
   }, [summary.account]);
 
+  const onPeek = useCallback(
+    () => api.peek(summary.account, cookiesPath),
+    [summary.account, cookiesPath],
+  );
+
   return (
     <AccountCard
       summary={summary}
@@ -72,6 +77,7 @@ export function ConnectedAccountCard({
       onStop={onStop}
       onSync={() => startJob("incremental")}
       onCount={() => startJob("count")}
+      onPeek={onPeek}
       onMediaChange={onMediaChange}
     />
   );

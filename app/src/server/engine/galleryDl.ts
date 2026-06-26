@@ -169,6 +169,56 @@ export function resolveOwner(
   });
 }
 
+/**
+ * Peeks the top `count` items of a tab via `gallery-dl --simulate` against the
+ * resume archive and reports how many are NEW (not yet downloaded). One small
+ * request — powers the "New posts" delta preview before committing to a sync.
+ */
+export function peekNew(o: {
+  account: string;
+  saveDir: string;
+  cookiesPath: string;
+  tab: Tab;
+  count: number;
+  provider?: SourceProvider;
+  signal?: AbortSignal;
+}): Promise<{ newCount: number; checked: number }> {
+  const provider = o.provider ?? getProvider();
+  try {
+    seedArchive(o.saveDir, o.tab); // reflect what's already on disk
+  } catch {
+    /* best effort */
+  }
+  const args = [
+    "-m", "gallery_dl", "--simulate",
+    "--download-archive", archivePath(o.saveDir, o.tab),
+    "--cookies", o.cookiesPath,
+    "-o", "videos=true",
+    "--range", `1-${o.count}`,
+    ...provider.kindArgs(o.tab),
+    provider.profileUrl(o.account),
+  ];
+  return new Promise((resolve, reject) => {
+    const child = spawn(PYTHON, args, { env: buildEnv(), signal: o.signal, windowsHide: true });
+    let newCount = 0;
+    let checked = 0;
+    const rl = createInterface({ input: child.stdout });
+    rl.on("line", (line) => {
+      let p = line.trim();
+      if (!p) return;
+      const isSkip = p.startsWith("# "); // gallery-dl marks already-archived items
+      if (isSkip) p = p.slice(2).trim();
+      if (!mediaTypeForFile(p)) return;
+      const pid = basename(p, extname(p));
+      if (pid.includes(".")) return; // yt-dlp fragment
+      checked += 1;
+      if (!isSkip) newCount += 1;
+    });
+    child.on("error", reject);
+    child.on("close", () => resolve({ newCount, checked }));
+  });
+}
+
 const RE_RATE_LIMIT = /401|please wait a few minutes/i;
 const RE_LOGIN_REDIRECT = /accounts\/login|redirect to login/i;
 

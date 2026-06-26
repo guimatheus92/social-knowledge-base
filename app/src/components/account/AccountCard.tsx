@@ -36,6 +36,7 @@ export function AccountCard({
   onStop,
   onSync,
   onCount,
+  onPeek,
   onMediaChange,
 }: {
   summary: AccountSummary;
@@ -44,6 +45,7 @@ export function AccountCard({
   onStop: () => void;
   onSync: () => void;
   onCount: () => void;
+  onPeek: () => Promise<{ newCount: number; checked: number; tab: string }>;
   onMediaChange: (media: MediaType[]) => void;
 }) {
   const { t, locale } = useI18n();
@@ -97,7 +99,7 @@ export function AccountCard({
             onPlay={onPlay}
             onStop={onStop}
           />
-          <SyncButton onSync={onSync} />
+          <SyncButton onSync={onSync} onPeek={onPeek} />
           <Tooltip>
             <TooltipTrigger
               render={
