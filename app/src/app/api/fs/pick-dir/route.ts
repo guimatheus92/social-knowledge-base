@@ -13,7 +13,7 @@ export const runtime = "nodejs";
  */
 export async function POST(req: Request): Promise<Response> {
   if (process.platform !== "win32") {
-    return Response.json({ error: "Seletor nativo só no Windows" }, { status: 501 });
+    return Response.json({ error: "Native picker only on Windows" }, { status: 501 });
   }
   let current = DOWNLOADS;
   try {
@@ -33,7 +33,7 @@ export async function POST(req: Request): Promise<Response> {
     "$o.TopMost = $true; $o.ShowInTaskbar = $false;",
     "$o.Show(); $o.Activate();",
     "$d = New-Object System.Windows.Forms.FolderBrowserDialog;",
-    "$d.Description = 'Escolha a pasta de download';",
+    "$d.Description = 'Choose the download folder';",
     "$d.ShowNewFolderButton = $true;",
     `if (Test-Path -LiteralPath '${init}') { $d.SelectedPath = '${init}' };`,
     "$r = $d.ShowDialog($o);",

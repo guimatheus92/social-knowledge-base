@@ -161,7 +161,7 @@ export function resolveOwner(
     child.on("close", () => {
       const username = findUsername(out);
       if (!username) {
-        reject(new Error(`Não consegui identificar o dono do vídeo (cookies válidos?). ${err.slice(0, 200)}`.trim()));
+        reject(new Error(`Could not identify the video's owner (valid cookies?). ${err.slice(0, 200)}`.trim()));
         return;
       }
       resolve({ account: username, tab: provider.kindFromUrl(url) as Tab, providerId: provider.id });
@@ -254,7 +254,7 @@ export function runTab(o: TabRunOptions): Promise<TabRunResult> {
       try {
         seedArchive(o.saveDir, o.tab);
       } catch (e) {
-        o.emit({ t: "log", level: "warn", msg: `[${o.tab}] seed archive falhou: ${(e as Error).message}` });
+        o.emit({ t: "log", level: "warn", msg: `[${o.tab}] seed archive failed: ${(e as Error).message}` });
       }
     }
 
@@ -320,7 +320,7 @@ export function runTab(o: TabRunOptions): Promise<TabRunResult> {
     });
 
     child.on("error", (e) => {
-      o.emit({ t: "log", level: "error", msg: `[${o.tab}] spawn falhou: ${e.message}` });
+      o.emit({ t: "log", level: "error", msg: `[${o.tab}] spawn failed: ${e.message}` });
       result.errors += 1;
       o.emit({ t: "tab_done", tab: o.tab, downloaded: result.downloaded, skipped: result.skipped, errors: result.errors });
       resolve(result);
@@ -328,7 +328,7 @@ export function runTab(o: TabRunOptions): Promise<TabRunResult> {
 
     child.on("close", (code) => {
       if (code && code !== 0) {
-        o.emit({ t: "log", level: "warn", msg: `[${o.tab}] gallery-dl saiu com código ${code}` });
+        o.emit({ t: "log", level: "warn", msg: `[${o.tab}] gallery-dl exited with code ${code}` });
       }
       o.emit({ t: "tab_done", tab: o.tab, downloaded: result.downloaded, skipped: result.skipped, errors: result.errors });
       resolve(result);

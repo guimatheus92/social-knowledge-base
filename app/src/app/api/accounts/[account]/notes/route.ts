@@ -16,7 +16,7 @@ export async function POST(
 ): Promise<Response> {
   const { account } = await params;
   if (!repo.getAccount(account)) {
-    return Response.json({ error: "conta não encontrada" }, { status: 404 });
+    return Response.json({ error: "account not found" }, { status: 404 });
   }
   return Response.json(notesRunner.start(account));
 }

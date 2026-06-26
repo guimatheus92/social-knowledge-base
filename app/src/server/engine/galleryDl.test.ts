@@ -12,7 +12,7 @@ const base = {
 };
 
 describe("buildArgs", () => {
-  it("monta o comando do gallery-dl", () => {
+  it("builds the gallery-dl command", () => {
     const a = buildArgs(base);
     expect(a).toContain("gallery_dl");
     expect(a).toContain("--cookies");
@@ -22,38 +22,38 @@ describe("buildArgs", () => {
     expect(a[a.length - 1]).toBe("https://www.instagram.com/foo/");
   });
 
-  it("modo incremental adiciona skip=abort", () => {
+  it("incremental mode adds skip=abort", () => {
     expect(buildArgs({ ...base, incremental: true }).join(" ")).toContain("skip=abort:1");
   });
 
-  it("ambas as mídias → sem --filter", () => {
+  it("both media types → no --filter", () => {
     const a = buildArgs({ ...base, mediaTypes: ["image", "video"] });
     expect(a.join(" ")).not.toContain("--filter");
   });
 });
 
 describe("parseMediaLine", () => {
-  it("detecta arquivo baixado da aba", () => {
+  it("detects a downloaded file from the tab", () => {
     const r = parseMediaLine("C:\\dl\\foo\\reels\\123.mp4", "reels");
     expect(r?.postId).toBe("123");
     expect(r?.skipped).toBe(false);
     expect(r?.mediaType).toBe("video");
   });
 
-  it("detecta skip com prefixo '# '", () => {
+  it("detects skip with '# ' prefix", () => {
     expect(parseMediaLine("# C:\\dl\\foo\\reels\\123.mp4", "reels")?.skipped).toBe(true);
   });
 
-  it("também casa caminho posix", () => {
+  it("also matches a posix path", () => {
     expect(parseMediaLine("/dl/foo/reels/9.mp4", "reels")?.postId).toBe("9");
   });
 
-  it("ignora fragmento .f… do yt-dlp", () => {
+  it("ignores yt-dlp .f… fragment", () => {
     expect(parseMediaLine("C:\\dl\\foo\\reels\\123.fdash-9v.mp4", "reels")).toBeNull();
   });
 
-  it("ignora linhas que não são mídia ou são de outra aba", () => {
-    expect(parseMediaLine("baixando algo...", "reels")).toBeNull();
+  it("ignores lines that aren't media or are from another tab", () => {
+    expect(parseMediaLine("downloading something...", "reels")).toBeNull();
     expect(parseMediaLine("C:\\dl\\foo\\stories\\1.mp4", "reels")).toBeNull();
   });
 });

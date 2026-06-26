@@ -1,4 +1,4 @@
-/** Per-account manifest schema (`manifests/<conta>.db`). Idempotent. */
+/** Per-account manifest schema (`manifests/<account>.db`). Idempotent. */
 export const SCHEMA_VERSION = "1";
 
 export const SCHEMA = `
@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS account (
   parallelism     INTEGER NOT NULL DEFAULT 2,
   elapsed_seconds REAL NOT NULL DEFAULT 0,
   network         TEXT NOT NULL DEFAULT 'instagram',       -- source provider id (instagram, tiktok, …)
+  note_language   TEXT,                                    -- per-account note language override (null = global default)
   estimated_total INTEGER,                                 -- profile total (gallery-dl --simulate)
   last_synced_at  TEXT,
   created_at      TEXT NOT NULL,

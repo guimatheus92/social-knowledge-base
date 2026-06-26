@@ -33,7 +33,7 @@ export async function POST(req: Request): Promise<Response> {
   try {
     body = NewAccount.parse(await req.json());
   } catch {
-    return Response.json({ error: "Corpo inválido" }, { status: 400 });
+    return Response.json({ error: "invalid body" }, { status: 400 });
   }
   repo.upsertAccount({
     account: body.account,

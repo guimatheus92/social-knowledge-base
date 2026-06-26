@@ -1,5 +1,5 @@
 "use client";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -14,8 +14,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
+import { DEFAULT_NOTE_LANG, NOTE_LANGS } from "@/lib/languages";
 import { formatBytes, formatDuration } from "@/lib/format";
 import { useT } from "@/i18n/I18nProvider";
 
@@ -27,6 +35,31 @@ function IconBtn({ children, label, onClick }: { children: ReactNode; label: str
           <Button type="button" variant="ghost" size="icon-sm" onClick={onClick} aria-label={label}>
             {children}
           </Button>
+        }
+      />
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Compact note-language picker (per-video override before (re)generating). */
+function LangSelect({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Select value={value} onValueChange={(v) => v && onChange(v)}>
+            <SelectTrigger size="sm" className="w-[8.5rem]" aria-label={label}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {NOTE_LANGS.map((l) => (
+                <SelectItem key={l.code} value={l.code}>
+                  {l.native}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         }
       />
       <TooltipContent>{label}</TooltipContent>
@@ -60,8 +93,13 @@ export function VideoDetailDialog({
     enabled: open,
   });
 
+  // Per-video language override; defaults to the account/global resolved language.
+  const [langOverride, setLangOverride] = useState<string | null>(null);
+  useEffect(() => setLangOverride(null), [postId]);
+  const lang = langOverride ?? data?.noteLanguage ?? DEFAULT_NOTE_LANG;
+
   const gen = useMutation({
-    mutationFn: () => api.generateNote(account as string, postId as string),
+    mutationFn: (language: string) => api.generateNote(account as string, postId as string, language),
     onSuccess: (r) => {
       if (r.ok) {
         qc.invalidateQueries({ queryKey: ["detail", account, postId] });
@@ -189,14 +227,15 @@ export function VideoDetailDialog({
                     </span>
                   )}
                   {data.note && (
-                    <div className="ml-auto flex items-center gap-1">
+                    <div className="ml-auto flex items-center gap-1.5">
                       <IconBtn label={t("detail.copy")} onClick={() => copyText(data.note as string)}>
                         <Copy className="size-3.5" />
                       </IconBtn>
                       <IconBtn label={t("detail.downloadMd")} onClick={downloadNote}>
                         <Download className="size-3.5" />
                       </IconBtn>
-                      <Button variant="outline" size="sm" onClick={() => gen.mutate()} disabled={gen.isPending}>
+                      <LangSelect value={lang} onChange={setLangOverride} label={t("detail.language")} />
+                      <Button variant="outline" size="sm" onClick={() => gen.mutate(lang)} disabled={gen.isPending}>
                         {gen.isPending ? <Loader2 className="animate-spin" /> : <RefreshCw />}
                         {t("detail.regenerate")}
                       </Button>
@@ -209,9 +248,10 @@ export function VideoDetailDialog({
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.note}</ReactMarkdown>
                   </div>
                 ) : health?.available ? (
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm text-muted-foreground">{t("detail.noNote")}</p>
-                    <Button size="sm" onClick={() => gen.mutate()} disabled={gen.isPending}>
+                    <LangSelect value={lang} onChange={setLangOverride} label={t("detail.language")} />
+                    <Button size="sm" onClick={() => gen.mutate(lang)} disabled={gen.isPending}>
                       {gen.isPending ? <Loader2 className="animate-spin" /> : <Sparkles />}
                       {gen.isPending ? t("detail.generating") : t("detail.generateNote")}
                     </Button>

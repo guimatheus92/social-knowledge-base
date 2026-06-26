@@ -18,16 +18,16 @@ export async function POST(
 ): Promise<Response> {
   const { account } = await params;
   const acc = repo.getAccount(account);
-  if (!acc) return Response.json({ error: "conta não encontrada" }, { status: 404 });
+  if (!acc) return Response.json({ error: "account not found" }, { status: 404 });
 
   let body;
   try {
     body = Body.parse(await req.json());
   } catch {
-    return Response.json({ error: "Corpo inválido" }, { status: 400 });
+    return Response.json({ error: "invalid body" }, { status: 400 });
   }
   if (!existsSync(body.cookiesPath)) {
-    return Response.json({ error: `cookies.txt não encontrado: ${body.cookiesPath}` }, { status: 400 });
+    return Response.json({ error: `cookies.txt not found: ${body.cookiesPath}` }, { status: 400 });
   }
 
   // Peek the main feed (reels) when available, else the first enabled tab.

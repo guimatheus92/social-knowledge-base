@@ -15,6 +15,7 @@ const Body = z.object({
   maxFrames: z.number().int().min(1).max(60),
   threshold: z.number().min(0).max(1),
   ocrLanguage: z.string().min(2).max(40),
+  noteLanguage: z.string().min(2).max(8),
 });
 
 export async function PUT(req: Request): Promise<Response> {
@@ -22,7 +23,7 @@ export async function PUT(req: Request): Promise<Response> {
   try {
     body = Body.parse(await req.json());
   } catch {
-    return Response.json({ error: "Config inválida" }, { status: 400 });
+    return Response.json({ error: "invalid config" }, { status: 400 });
   }
   setAnalysisConfig(body);
   return Response.json(getAnalysisConfig());

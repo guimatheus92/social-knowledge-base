@@ -9,7 +9,7 @@ const Body = z.object({
   url: z
     .string()
     .url()
-    .refine((u) => providerForUrl(u) !== null, "Rede não suportada (Instagram, TikTok…)"),
+    .refine((u) => providerForUrl(u) !== null, "Unsupported network (Instagram, TikTok…)"),
   cookiesPath: z.string().min(1),
   media: z.array(z.enum(["image", "video"])).min(1).optional(),
 });
@@ -19,10 +19,10 @@ export async function POST(req: Request): Promise<Response> {
   try {
     parsed = Body.parse(await req.json());
   } catch {
-    return Response.json({ error: "Corpo inválido" }, { status: 400 });
+    return Response.json({ error: "invalid body" }, { status: 400 });
   }
   if (!existsSync(parsed.cookiesPath)) {
-    return Response.json({ error: `cookies.txt não encontrado: ${parsed.cookiesPath}` }, { status: 400 });
+    return Response.json({ error: `cookies.txt not found: ${parsed.cookiesPath}` }, { status: 400 });
   }
   try {
     const snapshot = await jobManager.startSingle(parsed);

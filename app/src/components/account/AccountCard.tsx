@@ -172,7 +172,11 @@ export function AccountCard({
 
         <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3 text-sm">
           <span className="font-medium text-muted-foreground">{t("notes.label")}</span>
-          <NotesControl account={summary.account} unnoted={summary.counts.unnotedVideos} />
+          <NotesControl
+            account={summary.account}
+            unnoted={summary.counts.unnotedVideos}
+            noteLanguage={summary.noteLanguage}
+          />
         </div>
       </CardContent>
     </Card>

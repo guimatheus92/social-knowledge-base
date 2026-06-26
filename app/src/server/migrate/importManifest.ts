@@ -1,10 +1,10 @@
 /**
  * One-shot migration: imports the legacy `manifest.json` (PT, at the root) into the
- * per-account SQLite (`manifests/<conta>.db`), RECONCILING with disk (disk is the
+ * per-account SQLite (`manifests/<account>.db`), RECONCILING with disk (disk is the
  * source of truth for what was downloaded — fixes the drift of the sync-only-at-the-end).
  * Idempotent. Does not delete manifest.json.
  *
- * Usage:  cd app && npx tsx src/server/migrate/importManifest.ts [conta]
+ * Usage:  cd app && npx tsx src/server/migrate/importManifest.ts [account]
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, extname, join, relative, sep } from "node:path";
@@ -78,7 +78,7 @@ export function importManifest(accountArg?: string): {
     ? JSON.parse(readFileSync(LEGACY_MANIFEST, "utf-8"))
     : {};
   const account = accountArg ?? manifest.perfil ?? "";
-  if (!account) throw new Error("Sem conta: passe um argumento ou defina perfil no manifest.json");
+  if (!account) throw new Error("No account: pass an argument or set `perfil` in manifest.json");
 
   // 1. index the legacy entries by post_id (= the file stem of the key)
   const legacy = new Map<string, LegacyVideo & { key: string }>();
@@ -125,7 +125,7 @@ export function importManifest(accountArg?: string): {
       relPath: lg.key,
       status: "error",
       downloadedAt: lg.baixado_em ?? null,
-      error: "arquivo ausente no disco",
+      error: "file missing on disk",
     });
     if (lg.lido_em) repo.markRead(account, pid, lg.lido_em, lg.nota ?? null);
   }
@@ -154,13 +154,13 @@ export function importManifest(accountArg?: string): {
 function main(): void {
   const account = process.argv[2];
   const r = importManifest(account);
-  console.log("Migração concluída:");
-  console.log(`  conta:            ${r.account}`);
-  console.log(`  legado (manifest): ${r.legacyCount}`);
-  console.log(`  no disco:         ${r.diskCount}`);
-  console.log(`  novos do disco:   ${r.addedFromDisk} (estavam no disco, faltando no manifest — drift corrigido)`);
-  console.log(`  faltando no disco: ${r.missingOnDisk}`);
-  console.log(`  total no SQLite:  ${r.total}`);
+  console.log("Migration complete:");
+  console.log(`  account:           ${r.account}`);
+  console.log(`  legacy (manifest): ${r.legacyCount}`);
+  console.log(`  on disk:           ${r.diskCount}`);
+  console.log(`  new from disk:     ${r.addedFromDisk} (were on disk, missing from manifest — drift fixed)`);
+  console.log(`  missing on disk:   ${r.missingOnDisk}`);
+  console.log(`  total in SQLite:   ${r.total}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -1,5 +1,6 @@
 import * as repo from "@/server/db/repository";
 import { readVideoKnowledge } from "@/server/engine/knowledge";
+import { resolveNoteLanguage } from "@/server/engine/notes";
 import { getProvider } from "@/server/providers";
 
 export const runtime = "nodejs";
@@ -12,9 +13,10 @@ export async function GET(
 ): Promise<Response> {
   const { account, postId } = await params;
   const item = repo.getItem(account, postId);
-  if (!item) return Response.json({ error: "item não encontrado" }, { status: 404 });
+  if (!item) return Response.json({ error: "item not found" }, { status: 404 });
   const { note, transcript, noteMeta } = await readVideoKnowledge(account, postId);
   const acc = repo.getAccount(account);
   const webUrl = acc ? getProvider(acc.network).webUrl(account, postId, item.origin) : null;
-  return Response.json({ item, note, transcript, webUrl, noteMeta });
+  const noteLanguage = resolveNoteLanguage(account);
+  return Response.json({ item, note, transcript, webUrl, noteMeta, noteLanguage });
 }

@@ -5,12 +5,28 @@ import { Check, Loader2, Sparkles, Square } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
+import { DEFAULT_NOTE_LANG, NOTE_LANGS } from "@/lib/languages";
 import { useT } from "@/i18n/I18nProvider";
 
 /** Per-account "generate the missing notes" via headless Claude Code (polled progress). */
-export function NotesControl({ account, unnoted }: { account: string; unnoted: number }) {
+export function NotesControl({
+  account,
+  unnoted,
+  noteLanguage,
+}: {
+  account: string;
+  unnoted: number;
+  noteLanguage: string | null;
+}) {
   const t = useT();
   const qc = useQueryClient();
 
@@ -18,6 +34,20 @@ export function NotesControl({ account, unnoted }: { account: string; unnoted: n
     queryKey: ["notes-health"],
     queryFn: api.notesHealth,
     staleTime: Infinity,
+  });
+
+  // Global default note language (shown when the account has no override).
+  const { data: config } = useQuery({
+    queryKey: ["config"],
+    queryFn: api.getConfig,
+    staleTime: Infinity,
+  });
+  const lang = noteLanguage ?? config?.noteLanguage ?? DEFAULT_NOTE_LANG;
+
+  const setLang = useMutation({
+    mutationFn: (v: string) => api.patchAccount(account, { noteLanguage: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+    onError: (e) => toast.error((e as Error).message),
   });
 
   const { data: job } = useQuery({
@@ -81,7 +111,26 @@ export function NotesControl({ account, unnoted }: { account: string; unnoted: n
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Select value={lang} onValueChange={(v) => v && v !== lang && setLang.mutate(v)}>
+              <SelectTrigger size="sm" className="w-[8.5rem]" aria-label={t("notes.language")}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {NOTE_LANGS.map((l) => (
+                  <SelectItem key={l.code} value={l.code}>
+                    {l.native}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          }
+        />
+        <TooltipContent>{t("notes.languageTip")}</TooltipContent>
+      </Tooltip>
       <Tooltip>
         <TooltipTrigger
           render={

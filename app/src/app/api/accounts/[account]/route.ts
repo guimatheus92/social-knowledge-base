@@ -18,7 +18,7 @@ export async function GET(
 ): Promise<Response> {
   const { account } = await params;
   const s = summary(account);
-  return s ? Response.json(s) : Response.json({ error: "conta não encontrada" }, { status: 404 });
+  return s ? Response.json(s) : Response.json({ error: "account not found" }, { status: 404 });
 }
 
 const Patch = z.object({
@@ -26,6 +26,7 @@ const Patch = z.object({
   tabs: z.array(z.enum(["highlights", "reels", "stories", "posts"])).optional(),
   savePath: z.string().optional(),
   parallelism: z.number().int().min(1).max(4).optional(),
+  noteLanguage: z.string().min(2).max(8).optional(),
 });
 
 export async function PATCH(
@@ -37,14 +38,15 @@ export async function PATCH(
   try {
     body = Patch.parse(await req.json());
   } catch {
-    return Response.json({ error: "Corpo inválido" }, { status: 400 });
+    return Response.json({ error: "invalid body" }, { status: 400 });
   }
   repo.updateAccountSettings(account, {
     mediaTypes: body.media as MediaType[] | undefined,
     tabs: body.tabs as Tab[] | undefined,
     savePath: body.savePath,
     parallelism: body.parallelism,
+    noteLanguage: body.noteLanguage,
   });
   const s = summary(account);
-  return s ? Response.json(s) : Response.json({ error: "conta não encontrada" }, { status: 404 });
+  return s ? Response.json(s) : Response.json({ error: "account not found" }, { status: 404 });
 }

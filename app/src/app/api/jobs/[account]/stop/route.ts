@@ -8,6 +8,6 @@ export async function POST(
 ): Promise<Response> {
   const { account } = await params;
   const snapshot = jobManager.stop(account);
-  if (!snapshot) return Response.json({ error: "Sem job para essa conta" }, { status: 404 });
+  if (!snapshot) return Response.json({ error: "No job for this account" }, { status: 404 });
   return Response.json(snapshot);
 }

@@ -33,7 +33,7 @@ function sanitizeHandle(value: string) {
   return value.replace(/^@+/, "").trim();
 }
 
-/** Junta base + nome respeitando o separador do caminho (Windows ou posix). */
+/** Joins base + name respecting the path separator (Windows or posix). */
 function joinPath(base: string, name: string) {
   if (!base) return `downloads/${name || "perfil"}`;
   const sep = base.includes("\\") ? "\\" : "/";
@@ -61,7 +61,7 @@ export function AddAccountDialog({
   const [tabs, setTabs] = useState<Tab[]>(DEFAULT_TABS);
   const [network, setNetwork] = useState(DEFAULT_NETWORK);
 
-  // Default = pasta de downloads existente (absoluta).
+  // Default = existing downloads folder (absolute).
   useEffect(() => {
     if (!open) return;
     api

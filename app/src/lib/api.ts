@@ -1,4 +1,4 @@
-/** Client tipado da API (fetch). */
+/** Typed API client (fetch). */
 import type {
   AccountSummary,
   AnalysisConfig,
@@ -97,8 +97,10 @@ export const api = {
       `/api/accounts/${encodeURIComponent(account)}/peek`,
       { cookiesPath },
     ),
-  patchAccount: (account: string, body: Partial<{ media: string[]; tabs: string[]; savePath: string; parallelism: number }>) =>
-    jpatch<AccountSummary>(`/api/accounts/${encodeURIComponent(account)}`, body),
+  patchAccount: (
+    account: string,
+    body: Partial<{ media: string[]; tabs: string[]; savePath: string; parallelism: number; noteLanguage: string }>,
+  ) => jpatch<AccountSummary>(`/api/accounts/${encodeURIComponent(account)}`, body),
   pickDir: (current?: string) =>
     jpost<{ path: string | null; cancelled: boolean }>("/api/fs/pick-dir", { current }),
   defaultDir: () => jget<{ path: string }>("/api/fs/default-dir"),
@@ -118,13 +120,15 @@ export const api = {
       transcript: string | null;
       webUrl?: string | null;
       noteMeta?: NoteMeta | null;
+      noteLanguage?: string;
     }>(`/api/accounts/${encodeURIComponent(account)}/items/${encodeURIComponent(postId)}/detail`),
   search: (q: string, k = 10) =>
     jget<{ hits: SearchHit[]; error?: string }>(`/api/search?q=${encodeURIComponent(q)}&k=${k}`),
   notesHealth: () => jget<{ available: boolean }>("/api/notes/health"),
-  generateNote: (account: string, postId: string) =>
+  generateNote: (account: string, postId: string, language?: string) =>
     jpost<{ ok: boolean; note?: string | null; error?: string }>(
       `/api/accounts/${encodeURIComponent(account)}/items/${encodeURIComponent(postId)}/note`,
+      language ? { language } : undefined,
     ),
   startNotes: (account: string) =>
     jpost<NotesJobStatus>(`/api/accounts/${encodeURIComponent(account)}/notes`),

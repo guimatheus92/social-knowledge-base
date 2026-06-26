@@ -110,14 +110,14 @@ export function searchRag(question: string, k = 10): Promise<SearchHit[]> {
     child.on("error", reject);
     child.on("close", (code) => {
       if (!out.trim()) {
-        reject(new Error(err.slice(0, 300).trim() || `query.py saiu com código ${code}`));
+        reject(new Error(err.slice(0, 300).trim() || `query.py exited with code ${code}`));
         return;
       }
       try {
         const raw = JSON.parse(out) as { path: string; score: number; excerpt: string }[];
         resolve(raw.map((r) => ({ ...r, ...locate(r.path) })));
       } catch (e) {
-        reject(new Error(`saída inválida do query.py: ${(e as Error).message}`));
+        reject(new Error(`invalid output from query.py: ${(e as Error).message}`));
       }
     });
   });

@@ -12,9 +12,22 @@ import { existsSync, writeFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { ROOT, assertSafeSegment } from "@/server/paths";
 import * as repo from "@/server/db/repository";
+import { getAnalysisConfig } from "@/server/config/mcp";
+import { DEFAULT_NOTE_LANG, noteLangEnglish } from "@/lib/languages";
 import type { NotesJobStatus } from "@/lib/types";
 
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
+
+/**
+ * Which language the note prose is written in, most-specific first:
+ * explicit override → per-account setting → global config default → English.
+ */
+export function resolveNoteLanguage(account: string, override?: string): string {
+  if (override) return override;
+  const acc = repo.getAccount(account);
+  if (acc?.noteLanguage) return acc.noteLanguage;
+  return getAnalysisConfig().noteLanguage || DEFAULT_NOTE_LANG;
+}
 
 // Pre-approved tools for the headless run (so it never blocks on a prompt).
 const NOTE_TOOLS = [
@@ -54,24 +67,31 @@ export function metaPathFor(account: string, postId: string): string {
   return join(ROOT, "notes", account, "videos", `${postId}.meta.json`);
 }
 
-function buildPrompt(account: string, postId: string, origin: string, absVideo: string): string {
+function buildPrompt(
+  account: string,
+  postId: string,
+  origin: string,
+  absVideo: string,
+  langEnglish: string,
+): string {
   const noteRel = `notes/${account}/videos/${postId}.md`;
   const now = new Date().toISOString();
   return [
-    "Você é o agente de notas deste repositório. LEIA primeiro `prompts/build-notes.md` — ele tem o TEMPLATE canônico da nota e as regras de qualidade.",
+    "You are this repository's note-taking agent. FIRST read `prompts/build-notes.md` — it holds the canonical note TEMPLATE and the quality rules.",
     "",
-    "Gere a nota de UM vídeo já baixado:",
-    `- perfil: ${account}`,
+    "Generate the note for ONE already-downloaded video:",
+    `- profile: ${account}`,
     `- id: ${postId}`,
-    `- origem: ${origin}`,
-    `- vídeo (caminho absoluto): ${absVideo}`,
-    `- processado_em: ${now}`,
+    `- origin: ${origin}`,
+    `- video (absolute path): ${absVideo}`,
+    `- processed_at: ${now}`,
     "",
-    "Passos:",
-    '1. Use a tool `analyze_video` com `url` = o caminho absoluto acima e `options` = { "detail": "standard", "ocrLanguage": "por+eng" } para ASSISTIR (frames + OCR) e OUVIR (transcrição). O MCP reusa o `.vtt` ao lado do vídeo se existir.',
-    `2. Escreva a nota seguindo o TEMPLATE em \`${noteRel}\`. Cite timestamps reais; não invente — se a fala estiver inaudível ou o OCR vazio, diga isso na seção.`,
-    "3. NÃO toque em manifest/SQLite/README nem em nenhum outro arquivo — escreva APENAS esse `.md`.",
-    "Ao terminar, responda apenas: DONE",
+    "Steps:",
+    '1. Call the `analyze_video` tool with `url` = the absolute path above and `options` = { "detail": "standard", "ocrLanguage": "por+eng" } to WATCH (frames + OCR) and LISTEN (transcript). The MCP reuses the `.vtt` next to the video if present.',
+    `2. Write the note following the TEMPLATE into \`${noteRel}\`. Cite real timestamps; never invent — if speech is inaudible or OCR is empty, say so in that section.`,
+    `3. LANGUAGE: write the note — every section heading AND all prose — in ${langEnglish}. Keep the YAML frontmatter KEYS exactly as in the template (do not translate the keys).`,
+    "4. Do NOT touch the manifest/SQLite/README or any other file — write ONLY that `.md`.",
+    "When done, reply only: DONE",
   ].join("\n");
 }
 
@@ -80,14 +100,16 @@ export function generateNote(
   account: string,
   postId: string,
   signal?: AbortSignal,
+  language?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   assertSafeSegment(account);
   assertSafeSegment(postId);
   const item = repo.getItem(account, postId);
-  if (!item?.relPath) return Promise.resolve({ ok: false, error: "vídeo não encontrado" });
+  if (!item?.relPath) return Promise.resolve({ ok: false, error: "video not found" });
 
   const abs = (isAbsolute(item.relPath) ? item.relPath : join(ROOT, item.relPath)).replace(/\\/g, "/");
-  const prompt = buildPrompt(account, postId, item.origin, abs);
+  const lang = resolveNoteLanguage(account, language);
+  const prompt = buildPrompt(account, postId, item.origin, abs, noteLangEnglish(lang));
 
   return new Promise((resolve) => {
     let child;
@@ -113,7 +135,7 @@ export function generateNote(
     child.on("close", (code) => {
       // Success = the note file now exists (more reliable than parsing the agent's text).
       if (!existsSync(notePathFor(account, postId))) {
-        resolve({ ok: false, error: err.slice(-300).trim() || `claude saiu com código ${code} sem gravar a nota` });
+        resolve({ ok: false, error: err.slice(-300).trim() || `claude exited with code ${code} without writing the note` });
         return;
       }
       // Best-effort: persist token usage from the JSON result as a sidecar.
@@ -140,8 +162,8 @@ export function generateNote(
 }
 
 /** Generates one note AND records it in the manifest (status=read + note_path). */
-export async function generateAndRecord(account: string, postId: string, signal?: AbortSignal): Promise<{ ok: boolean; error?: string }> {
-  const r = await generateNote(account, postId, signal);
+export async function generateAndRecord(account: string, postId: string, signal?: AbortSignal, language?: string): Promise<{ ok: boolean; error?: string }> {
+  const r = await generateNote(account, postId, signal, language);
   if (r.ok) {
     repo.markRead(account, postId, new Date().toISOString(), `notes/${account}/videos/${postId}.md`);
   }
@@ -202,10 +224,12 @@ class NotesRunner {
   }
 
   private async run(job: NotesJob, postIds: string[]): Promise<void> {
+    // Resolve the batch language once (per-account override → global default).
+    const lang = resolveNoteLanguage(job.account);
     for (const postId of postIds) {
       if (job.abort.signal.aborted) break;
       job.current = postId;
-      const r = await generateAndRecord(job.account, postId, job.abort.signal);
+      const r = await generateAndRecord(job.account, postId, job.abort.signal, lang);
       if (r.ok) {
         job.done += 1;
       } else {

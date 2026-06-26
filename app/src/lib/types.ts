@@ -25,7 +25,7 @@ export type ItemStatus =
   | "read"
   | "error";
 
-/** A target account (downloaded profile). One row per `manifests/<conta>.db` database. */
+/** A target account (downloaded profile). One row per `manifests/<account>.db` database. */
 export interface Account {
   account: string;
   savePath: string;
@@ -35,6 +35,8 @@ export interface Account {
   parallelism: number;
   /** Source network provider id (instagram, tiktok, …). */
   network: string;
+  /** Per-account override for the note language (null = follow the global default). */
+  noteLanguage: string | null;
   elapsedSeconds: number;
   lastSyncedAt: string | null;
   /** Estimated total of items in the profile (via "Count" / gallery-dl --simulate). */
@@ -161,7 +163,7 @@ export interface SearchHit {
   kind: "note" | "transcript" | "other";
 }
 
-/** LLM reading config (Whisper + the MCP's analyze_video options). */
+/** LLM reading config (Whisper + the MCP's analyze_video options + note language). */
 export interface AnalysisConfig {
   whisperModel: string;
   whisperLanguage: string;
@@ -169,4 +171,6 @@ export interface AnalysisConfig {
   maxFrames: number;
   threshold: number;
   ocrLanguage: string;
+  /** Default language the LLM writes notes in (per-account/per-video can override). */
+  noteLanguage: string;
 }

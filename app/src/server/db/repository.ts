@@ -51,6 +51,7 @@ function rowToAccount(r: any): Account {
     tabs: String(r.tabs).split(",").filter(Boolean) as Tab[],
     parallelism: num(r.parallelism),
     network: r.network ?? "instagram",
+    noteLanguage: r.note_language ?? null,
     elapsedSeconds: num(r.elapsed_seconds),
     lastSyncedAt: r.last_synced_at ?? null,
     estimatedTotal: r.estimated_total == null ? null : num(r.estimated_total),
@@ -111,7 +112,7 @@ export function upsertAccount(a: AccountInput): void {
 
 export function updateAccountSettings(
   account: string,
-  p: { mediaTypes?: MediaType[]; tabs?: Tab[]; savePath?: string; parallelism?: number },
+  p: { mediaTypes?: MediaType[]; tabs?: Tab[]; savePath?: string; parallelism?: number; noteLanguage?: string },
 ): void {
   const sets: string[] = [];
   const vals: (string | number)[] = [];
@@ -130,6 +131,10 @@ export function updateAccountSettings(
   if (p.parallelism != null) {
     sets.push("parallelism = ?");
     vals.push(p.parallelism);
+  }
+  if (p.noteLanguage != null) {
+    sets.push("note_language = ?");
+    vals.push(p.noteLanguage);
   }
   if (sets.length === 0) return;
   sets.push("updated_at = ?");
@@ -316,7 +321,7 @@ export function listAccountNames(): string[] {
     .map((f) => f.slice(0, -3));
 }
 
-/** Versionable export `manifests/<conta>.json` (replaces the root manifest.json). */
+/** Versionable export `manifests/<account>.json` (replaces the root manifest.json). */
 export function exportJson(account: string): string {
   const db = openDb(account);
   const acc = getAccount(account);

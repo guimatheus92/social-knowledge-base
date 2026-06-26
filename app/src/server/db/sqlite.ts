@@ -1,4 +1,4 @@
-/** Per-account SQLite connection (`manifests/<conta>.db`) via node:sqlite (Node 24+). */
+/** Per-account SQLite connection (`manifests/<account>.db`) via node:sqlite (Node 24+). */
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -24,6 +24,7 @@ export function openDb(account: string): DatabaseSync {
   for (const col of [
     "estimated_total INTEGER",
     "network TEXT NOT NULL DEFAULT 'instagram'",
+    "note_language TEXT",
   ]) {
     try {
       db.exec(`ALTER TABLE account ADD COLUMN ${col}`);
