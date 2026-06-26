@@ -11,6 +11,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
+import sys
 from pathlib import Path
 
 import chromadb
@@ -25,10 +27,11 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Consulta as notas (RAG).")
     p.add_argument("question", help="ex.: 'o que aprendi sobre X?'")
     p.add_argument("-k", type=int, default=5, help="quantas notas retornar")
+    p.add_argument("--json", action="store_true", help="saída JSON (para integração)")
     args = p.parse_args()
 
     if not DB.exists():
-        print("Nada indexado ainda. Rode: python scripts/index_notes.py")
+        print("[]" if args.json else "Nada indexado ainda. Rode: python scripts/index_notes.py")
         return
 
     model = SentenceTransformer(MODEL_NAME)
@@ -42,18 +45,25 @@ def main() -> None:
     metas = res["metadatas"][0]
     dists = res["distances"][0]
     if not docs:
-        print("Nada indexado ainda. Rode: python scripts/index_notes.py")
+        print("[]" if args.json else "Nada indexado ainda. Rode: python scripts/index_notes.py")
         return
 
-    print(f"\nTop {len(docs)} notas para: {args.question}\n")
+    hits = []
     for doc, meta, dist in zip(docs, metas, dists):
         # cosine distance (0 = identical) -> approximate score
         score = max(0.0, 1.0 - dist)
         # skip the YAML frontmatter to show a useful excerpt
         body = doc.split("---", 2)[-1].strip() if doc.startswith("---") else doc
-        excerpt = body[:400].strip()
-        print(f"### {meta['path']}  (score {score:.2f})")
-        print(excerpt)
+        hits.append({"path": meta.get("path", ""), "score": round(score, 3), "excerpt": body[:400].strip()})
+
+    if args.json:
+        json.dump(hits, sys.stdout, ensure_ascii=False)
+        return
+
+    print(f"\nTop {len(hits)} notas para: {args.question}\n")
+    for h in hits:
+        print(f"### {h['path']}  (score {h['score']:.2f})")
+        print(h["excerpt"])
         print()
 
 

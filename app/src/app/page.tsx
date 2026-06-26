@@ -2,7 +2,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Aperture, ChevronLeft } from "lucide-react";
+import Link from "next/link";
+import { Aperture, ChevronLeft, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAccounts } from "@/hooks/useAccounts";
 import { api } from "@/lib/api";
 import { ConnectedAccountCard } from "@/components/account/ConnectedAccountCard";
@@ -134,6 +136,10 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <LanguageToggle />
+          <Button variant="outline" render={<Link href="/search" />}>
+            <Search />
+            {t("search.trigger")}
+          </Button>
           <AnalysisSettingsPanel />
           <DownloadByLinkDialog onDownload={onDownloadLink} disabled={!cookiesPath} />
           <AddAccountDialog onAdd={onAdd} />

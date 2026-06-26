@@ -130,6 +130,16 @@ export interface AccountSummary extends Account {
 /** SSE message: either an initial snapshot or a progress event. */
 export type StreamMessage = { t: "snapshot"; snapshot: JobSnapshot | null } | JobEvent;
 
+/** A RAG search result (transcript or note chunk) mapped back to its source. */
+export interface SearchHit {
+  path: string;
+  score: number;
+  excerpt: string;
+  account: string | null;
+  postId: string | null;
+  kind: "note" | "transcript" | "other";
+}
+
 /** LLM reading config (Whisper + the MCP's analyze_video options). */
 export interface AnalysisConfig {
   whisperModel: string;

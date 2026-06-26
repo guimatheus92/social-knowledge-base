@@ -5,10 +5,19 @@ import { useItems, type ItemFilters } from "@/hooks/useItems";
 import { ItemTile } from "@/components/library/ItemTile";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useT } from "@/i18n/I18nProvider";
+import type { Item } from "@/lib/types";
 
 const GRID = "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6";
 
-export function LibraryGrid({ account, filters }: { account: string; filters: ItemFilters }) {
+export function LibraryGrid({
+  account,
+  filters,
+  onSelect,
+}: {
+  account: string;
+  filters: ItemFilters;
+  onSelect: (item: Item) => void;
+}) {
   const t = useT();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useItems(
     account,
@@ -45,7 +54,7 @@ export function LibraryGrid({ account, filters }: { account: string; filters: It
     <>
       <div className={GRID}>
         {items.map((it) => (
-          <ItemTile key={it.postId} account={account} item={it} />
+          <ItemTile key={it.postId} account={account} item={it} onSelect={() => onSelect(it)} />
         ))}
       </div>
       <div ref={sentinel} className="flex justify-center py-6 text-xs text-muted-foreground">

@@ -4,14 +4,17 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { SearchFilterBar } from "@/components/library/SearchFilterBar";
 import { LibraryGrid } from "@/components/library/LibraryGrid";
+import { VideoDetailDialog } from "@/components/library/VideoDetailDialog";
 import { useStats } from "@/hooks/useAccounts";
 import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { ItemFilters } from "@/hooks/useItems";
+import type { Item } from "@/lib/types";
 
 export function LibraryView({ account }: { account: string }) {
   const { t, locale } = useI18n();
   const [filters, setFilters] = useState<ItemFilters>({ sort: "date" });
+  const [selected, setSelected] = useState<Item | null>(null);
   const { data: stats } = useStats(account);
   const total = stats?.counts.total ?? 0;
 
@@ -36,7 +39,16 @@ export function LibraryView({ account }: { account: string }) {
       </header>
 
       <SearchFilterBar value={filters} onChange={setFilters} />
-      <LibraryGrid account={account} filters={filters} />
+      <LibraryGrid account={account} filters={filters} onSelect={setSelected} />
+
+      <VideoDetailDialog
+        account={account}
+        postId={selected?.postId ?? null}
+        open={selected !== null}
+        onOpenChange={(o) => {
+          if (!o) setSelected(null);
+        }}
+      />
     </main>
   );
 }

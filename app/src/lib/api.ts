@@ -1,5 +1,5 @@
 /** Client tipado da API (fetch). */
-import type { AccountSummary, AnalysisConfig, Counts, Item, JobSnapshot } from "@/lib/types";
+import type { AccountSummary, AnalysisConfig, Counts, Item, JobSnapshot, SearchHit } from "@/lib/types";
 
 async function jget<T>(url: string): Promise<T> {
   const r = await fetch(url);
@@ -96,6 +96,12 @@ export const api = {
   openDir: (path: string) => jpost<{ ok: boolean }>("/api/fs/open-dir", { path }),
   openFile: (account: string, postId: string) =>
     jpost<{ ok: boolean }>("/api/fs/open-file", { account, postId }),
+  videoDetail: (account: string, postId: string) =>
+    jget<{ item: Item; note: string | null; transcript: string | null }>(
+      `/api/accounts/${encodeURIComponent(account)}/items/${encodeURIComponent(postId)}/detail`,
+    ),
+  search: (q: string, k = 10) =>
+    jget<{ hits: SearchHit[]; error?: string }>(`/api/search?q=${encodeURIComponent(q)}&k=${k}`),
   getConfig: () => jget<AnalysisConfig>("/api/config"),
   setConfig: (cfg: AnalysisConfig) => jput<AnalysisConfig>("/api/config", cfg),
   disk: () => jget<{ downloaded: number; free: number; total: number }>("/api/disk"),
