@@ -14,6 +14,8 @@
   --color-coral: var(--coral);
   --color-magenta: var(--magenta);
   --color-violet: var(--violet);
+  --color-amber: var(--amber);
+  --color-cyan: var(--cyan);
   --color-good: var(--good);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -70,6 +72,8 @@
   --coral: oklch(0.665 0.214 12);
   --magenta: oklch(0.69 0.205 350);
   --violet: oklch(0.62 0.205 285);
+  --amber: oklch(0.82 0.135 75);
+  --cyan: oklch(0.72 0.11 218);
   --good: oklch(0.78 0.16 152);
 
   --secondary: oklch(0.255 0.022 290);

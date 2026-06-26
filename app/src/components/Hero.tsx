@@ -30,10 +30,10 @@ export function Hero({ accounts }: { accounts: AccountSummary[] | undefined }) {
   const tints = [
     "from-coral/80 to-magenta/20",
     "from-violet/80 to-coral/20",
+    "from-amber/70 to-coral/20",
+    "from-cyan/75 to-violet/20",
     "from-magenta/80 to-violet/20",
-    "from-coral/70 to-violet/20",
-    "from-violet/70 to-magenta/20",
-    "from-magenta/70 to-coral/20",
+    "from-good/65 to-cyan/20",
   ];
 
   return (

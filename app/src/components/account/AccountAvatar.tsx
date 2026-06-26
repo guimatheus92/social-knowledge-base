@@ -2,7 +2,26 @@
 import { cn } from "@/lib/utils";
 import { networkMeta } from "@/lib/networks";
 
-/** Account identity: a network-tinted initial with a small network-glyph badge. */
+// Per-profile identity color, drawn from the brand spectrum so the wall of
+// accounts isn't a sea of one color (the network is shown by the badge below).
+const AVATAR_GRADIENTS = [
+  "linear-gradient(140deg, var(--coral), var(--magenta))",
+  "linear-gradient(140deg, var(--violet), var(--coral))",
+  "linear-gradient(140deg, var(--cyan), var(--violet))",
+  "linear-gradient(140deg, var(--amber), var(--coral))",
+  "linear-gradient(140deg, var(--good), var(--cyan))",
+  "linear-gradient(140deg, var(--magenta), var(--violet))",
+  "linear-gradient(140deg, var(--coral), var(--amber))",
+  "linear-gradient(140deg, var(--violet), var(--magenta))",
+];
+
+function avatarGradient(account: string): string {
+  let h = 0;
+  for (let i = 0; i < account.length; i++) h = (h * 31 + account.charCodeAt(i)) >>> 0;
+  return AVATAR_GRADIENTS[h % AVATAR_GRADIENTS.length];
+}
+
+/** Account identity: a profile-colored initial with a small network-glyph badge. */
 export function AccountAvatar({
   account,
   network,
@@ -18,7 +37,7 @@ export function AccountAvatar({
     <div className={cn("relative shrink-0", className)}>
       <div
         className="grid size-11 place-items-center rounded-xl font-heading text-lg font-semibold text-white shadow-[0_6px_18px_-8px_rgba(0,0,0,0.7)]"
-        style={{ background: net.gradient }}
+        style={{ background: avatarGradient(account) }}
       >
         {account.charAt(0).toUpperCase()}
       </div>
