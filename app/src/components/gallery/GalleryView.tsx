@@ -7,6 +7,7 @@ import { ItemTile } from "@/components/library/ItemTile";
 import { VideoDetailDialog } from "@/components/library/VideoDetailDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGallery, type GalleryFilters } from "@/hooks/useGallery";
+import { api } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { GalleryItem } from "@/lib/types";
@@ -25,6 +26,11 @@ export function GalleryView() {
     const a = sp.get("a");
     const v = sp.get("v");
     if (a && v) setSelected({ account: a, postId: v });
+  }, []);
+
+  // Warm any missing posters in the background so the grid fills in over time.
+  useEffect(() => {
+    void api.warmThumbnails().catch(() => {});
   }, []);
   function openItem(it: GalleryItem) {
     setSelected({ account: it.account, postId: it.postId });

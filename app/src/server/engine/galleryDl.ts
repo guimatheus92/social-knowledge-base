@@ -13,6 +13,7 @@ import { buildEnv } from "@/server/engine/ffmpeg";
 import { mediaFilterArgs, mediaTypeForFile } from "@/server/engine/mediaType";
 import { getProvider, providerForUrl, type SourceProvider } from "@/server/providers";
 import * as repo from "@/server/db/repository";
+import { ensureThumb, thumbPathFor } from "@/server/engine/thumbnails";
 import { TAB_ORIGIN, type MediaType, type Tab } from "@/lib/types";
 import type { JobEvent } from "@/server/engine/progress";
 
@@ -306,6 +307,11 @@ export function runTab(o: TabRunOptions): Promise<TabRunResult> {
         downloadedAt: new Date(now).toISOString(),
         downloadMs: elapsedMs,
       });
+      // Pre-generate the poster (background, capped) so the gallery is instant later.
+      if (m.mediaType === "video") {
+        const saveDir = repo.getAccount(o.account)?.savePath ?? join(ROOT, "downloads", o.account);
+        void ensureThumb(m.path, thumbPathFor(saveDir, m.postId));
+      }
       result.downloaded += 1;
       o.emit({ t: "file_done", tab: o.tab, postId: m.postId, mediaType: m.mediaType, bytes, elapsedMs, skipped: false });
     });

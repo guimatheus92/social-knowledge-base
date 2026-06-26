@@ -1,8 +1,10 @@
 /** Generates video posters (thumbnails) via ffmpeg, lazily, with an on-disk cache. */
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 import { ffmpegPath } from "@/server/engine/ffmpeg";
+import { ROOT } from "@/server/paths";
+import { getAccount, listAccountNames, listItems } from "@/server/db/repository";
 
 // Cap concurrent ffmpeg processes (so we don't blow up while scrolling the grid).
 let active = 0;
@@ -68,4 +70,44 @@ export function ensureThumb(
         p.on("error", () => done(false));
       }),
   );
+}
+
+let warming = false;
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * Background batch: generate posters for every already-downloaded video that
+ * doesn't have one yet, across all profiles. Deliberately **gentle** — one
+ * ffmpeg at a time with a pause between generations — so a big backlog (10k+
+ * videos) warms quietly without starving the server. Idempotent (skips cached
+ * fast) and safe to call repeatedly; returns once the backlog is drained.
+ */
+export async function warmAllThumbnails(): Promise<{ total: number }> {
+  if (warming) return { total: 0 };
+  warming = true;
+  try {
+    // Collect work without per-item stat (that would block the loop) — the
+    // worker checks the cache one at a time, interleaved with yields.
+    const work: { abs: string; thumb: string }[] = [];
+    for (const account of listAccountNames()) {
+      const saveDir = getAccount(account)?.savePath ?? join(ROOT, "downloads", account);
+      for (const it of listItems(account, { media: "video", limit: 1_000_000 })) {
+        if (!it.relPath) continue;
+        const abs = isAbsolute(it.relPath) ? it.relPath : join(ROOT, it.relPath);
+        work.push({ abs, thumb: thumbPathFor(saveDir, it.postId) });
+      }
+    }
+    for (let i = 0; i < work.length; i++) {
+      const w = work[i];
+      if (!existsSync(w.thumb)) {
+        await ensureThumb(w.abs, w.thumb);
+        await sleep(120); // breathe between real generations so the UI stays snappy
+      } else if (i % 200 === 0) {
+        await sleep(0); // yield occasionally while fast-skipping cached posters
+      }
+    }
+    return { total: work.length };
+  } finally {
+    warming = false;
+  }
 }

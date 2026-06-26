@@ -91,6 +91,7 @@ export const api = {
   items: (account: string, qs: string) =>
     jget<{ items: Item[] }>(`/api/accounts/${encodeURIComponent(account)}/items?${qs}`),
   gallery: (qs: string) => jget<{ items: GalleryItem[]; total: number }>(`/api/gallery?${qs}`),
+  warmThumbnails: () => jpost<{ ok: boolean }>("/api/thumbnails/warm"),
   startJob: (body: StartJobBody) => jpost<JobSnapshot>("/api/jobs", body),
   startSingle: (body: { url: string; cookiesPath: string; media?: string[] }) =>
     jpost<JobSnapshot>("/api/jobs/single", body),
