@@ -107,10 +107,10 @@ export function VideoDetailDialog({
                   <img
                     src={`/api/accounts/${encodeURIComponent(account)}/items/${encodeURIComponent(postId)}/thumb`}
                     alt=""
-                    className="aspect-[9/16] w-28 shrink-0 rounded-xl object-cover ring-1 ring-border"
+                    className="aspect-[9/16] w-24 shrink-0 rounded-xl object-cover ring-1 ring-border"
                   />
                 )}
-                <div className="flex min-w-0 flex-1 flex-col gap-3">
+                <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     {item?.fileSize ? (
                       <span className="font-mono text-foreground">{formatBytes(item.fileSize)}</span>
