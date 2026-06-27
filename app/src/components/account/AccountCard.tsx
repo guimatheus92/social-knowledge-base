@@ -56,6 +56,7 @@ export function AccountCard({
   const counting = snapshot?.mode === "count" && running;
   const est = summary.estimatedTotal;
   const remaining = est != null ? Math.max(0, est - summary.counts.downloaded) : null;
+  const hasMedia = summary.counts.downloaded > 0;
 
   async function openFolder() {
     try {
@@ -93,16 +94,29 @@ export function AccountCard({
           <Tooltip>
             <TooltipTrigger
               render={
-                <Link
-                  href={`/library/${encodeURIComponent(summary.account)}`}
-                  className="inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-foreground outline-none transition hover:bg-white/[0.06] hover:text-foreground focus-visible:bg-white/[0.06] focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
-                >
-                  <Images className="size-4" />
-                  {t("card.library")}
-                </Link>
+                hasMedia ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    nativeButton={false}
+                    render={<Link href={`/library/${encodeURIComponent(summary.account)}`} />}
+                  >
+                    <Images className="size-4" />
+                    {t("card.library")}
+                  </Button>
+                ) : (
+                  <span className="inline-flex cursor-not-allowed">
+                    <Button variant="ghost" size="sm" disabled>
+                      <Images className="size-4" />
+                      {t("card.library")}
+                    </Button>
+                  </span>
+                )
               }
             />
-            <TooltipContent>{t("card.libraryTooltip")}</TooltipContent>
+            <TooltipContent>
+              {hasMedia ? t("card.libraryTooltip") : t("card.libraryEmptyTooltip")}
+            </TooltipContent>
           </Tooltip>
           <PlayButton
             status={snapshot?.status ?? summary.job?.status ?? "idle"}

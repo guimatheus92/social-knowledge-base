@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { Aperture, ChevronLeft, Images, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BrandRule } from "@/components/BrandRule";
 import { useAccounts } from "@/hooks/useAccounts";
 import { api } from "@/lib/api";
@@ -125,6 +126,7 @@ export default function DashboardPage() {
 
   const presentNetworks = NETWORKS.filter((n) => byNetwork.has(n.id));
   const activeAccounts = activeNetwork ? byNetwork.get(activeNetwork) ?? [] : [];
+  const hasAnyMedia = (accounts ?? []).some((a) => a.counts.downloaded > 0);
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
@@ -140,10 +142,26 @@ export default function DashboardPage() {
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <LanguageToggle />
-          <Button variant="outline" nativeButton={false} render={<Link href="/gallery" />}>
-            <Images />
-            {t("gallery.trigger")}
-          </Button>
+          {hasAnyMedia ? (
+            <Button variant="outline" nativeButton={false} render={<Link href="/gallery" />}>
+              <Images />
+              {t("gallery.trigger")}
+            </Button>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span className="inline-flex cursor-not-allowed">
+                    <Button variant="outline" disabled>
+                      <Images />
+                      {t("gallery.trigger")}
+                    </Button>
+                  </span>
+                }
+              />
+              <TooltipContent>{t("gallery.emptyTooltip")}</TooltipContent>
+            </Tooltip>
+          )}
           <Button variant="outline" nativeButton={false} render={<Link href="/search" />}>
             <Search />
             {t("search.trigger")}
