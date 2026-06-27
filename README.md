@@ -4,7 +4,7 @@
 <h1 align="center">Social Knowledge Base</h1>
 <p align="center"><em>Turn a creator's short videos into a searchable knowledge base — watched, heard, and queryable.</em></p>
 
-Turns a creator's videos (Instagram today; **TikTok/YouTube in progress**) into a markdown knowledge base: Opus **watches** (frames + OCR) and **listens** (transcription) to each video and writes down what it learned — for many videos, in a **resumable** way. The UI is bilingual (PT/EN).
+Turns a creator's videos (Instagram today; **TikTok/YouTube in progress**) into a markdown knowledge base: an LLM **watches** (frames + OCR) and **listens** (transcription) to each video and writes down what it learned — for many videos, in a **resumable** way. The UI is bilingual (PT/EN).
 
 > **Two engines make it work.** **[gallery-dl](https://github.com/mikf/gallery-dl)** (with `yt-dlp` + `ffmpeg`) does the **downloading** — it's the library that actually pulls every Reel, Story, and Highlight from a public profile, authenticated by your browser cookies. Then the **[`mcp-video-analyzer`](https://github.com/guimatheus92/mcp-video-analyzer)** MCP does the **reading** — transcript + frames + OCR + timeline. **Both are required** (build them once — see [Setup](#setup)). The cookies are a credential — see [Security & cookies](#security--cookies).
 
@@ -33,7 +33,7 @@ In the app: point to your `cookies.txt`, **add a profile** (or paste a **video l
 
 1. **Download** — `scripts/download_instagram.py` (gallery-dl, authenticated by a browser `cookies.txt`) downloads the videos to `downloads/<profile>/<tab>/`. (Or via the **app** in `app/`.)
 2. **Transcription (GPU)** — `scripts/transcribe_gpu.py` transcribes in bulk with faster-whisper `medium` on CUDA (~16–24× real time) and writes `.vtt`/`.txt`/`.json` sidecars per video. It auto-detects the GPU and **falls back to CPU** when there isn't one. Resumable.
-3. **Notes** — Claude Code + Opus, via `prompts/build-notes.md`, process **one video at a time** (reusing the transcript via `.vtt` + frames/OCR through the MCP) and write `notes/<profile>/videos/<video>.md`. The note language is configurable (default **English**) — see [Note language](#note-language).
+3. **Notes** — Claude Code (any capable LLM; Claude Opus recommended), via `prompts/build-notes.md`, processes **one video at a time** (reusing the transcript via `.vtt` + frames/OCR through the MCP) and writes `notes/<profile>/videos/<video>.md`. The note language is configurable (default **English**) — see [Note language](#note-language).
 4. **Overview + RAG** — `prompts/synthesize-overview.md` generates `notes/<profile>/OVERVIEW.md` by theme; `scripts/index_transcripts.py` + `scripts/index_notes.py` + `scripts/query.py` provide search (the library is searchable with the transcription alone).
 
 ## Setup
