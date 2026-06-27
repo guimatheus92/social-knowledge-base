@@ -21,7 +21,7 @@ import { SyncButton } from "@/components/controls/SyncButton";
 import { MediaTypeToggle } from "@/components/controls/MediaTypeToggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Folder, Images, Sigma } from "lucide-react";
+import { Copy, ExternalLink, Folder, Images, Sigma } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -62,6 +62,15 @@ export function AccountCard({
       await api.openDir(summary.savePath);
     } catch (e) {
       toast.error((e as Error).message);
+    }
+  }
+
+  async function copyPath() {
+    try {
+      await navigator.clipboard.writeText(summary.savePath);
+      toast.success(t("card.pathCopied"));
+    } catch {
+      toast.error(t("card.copyFailed"));
     }
   }
 
@@ -142,22 +151,39 @@ export function AccountCard({
           </span>
         ) : null}
 
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                type="button"
-                onClick={openFolder}
-                className="group flex w-fit max-w-full items-center gap-1.5 rounded-sm text-xs text-muted-foreground outline-none transition hover:text-foreground focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
-              >
-                <Folder className="size-3.5 shrink-0" />
-                <span className="truncate font-mono">{summary.savePath}</span>
-                <ExternalLink className="size-3 shrink-0 opacity-0 transition group-hover:opacity-100" />
-              </button>
-            }
-          />
-          <TooltipContent>{t("card.openFolderTooltip")}</TooltipContent>
-        </Tooltip>
+        <div className="flex w-fit max-w-full items-center gap-1 text-xs text-muted-foreground">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={openFolder}
+                  className="group flex min-w-0 items-center gap-1.5 rounded-sm outline-none transition hover:text-foreground focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  <Folder className="size-3.5 shrink-0" />
+                  <span className="truncate font-mono">{summary.savePath}</span>
+                  <ExternalLink className="size-3 shrink-0 opacity-0 transition group-hover:opacity-100" />
+                </button>
+              }
+            />
+            <TooltipContent>{t("card.openFolderTooltip")}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={copyPath}
+                  aria-label={t("card.copyPath")}
+                  className="shrink-0 rounded-sm p-0.5 outline-none transition hover:text-foreground focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  <Copy className="size-3.5" />
+                </button>
+              }
+            />
+            <TooltipContent>{t("card.copyPath")}</TooltipContent>
+          </Tooltip>
+        </div>
 
         <DownloadProgress job={snapshot ?? summary.job} />
 
