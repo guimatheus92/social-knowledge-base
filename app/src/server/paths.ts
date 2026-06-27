@@ -27,3 +27,15 @@ export const DOWNLOADS = join(ROOT, "downloads");
 export const MANIFESTS = join(ROOT, "manifests");
 export const LEGACY_MANIFEST = join(ROOT, "manifest.json");
 export const MCP_CONFIG = join(ROOT, ".mcp.json");
+
+/**
+ * Guards an `account` / `postId` segment that is interpolated into a filesystem
+ * path against traversal (`..`, slashes, drive letters). Throws on anything
+ * outside a conservative allow-list — handles/ids are alphanumeric + `._-`.
+ */
+export function assertSafeSegment(name: string): string {
+  if (!name || name.length > 128 || name.includes("..") || !/^[A-Za-z0-9._-]+$/.test(name)) {
+    throw new Error(`unsafe path segment: ${name}`);
+  }
+  return name;
+}

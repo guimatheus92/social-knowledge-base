@@ -22,7 +22,7 @@ const base: JobSnapshot = {
 };
 
 describe("applyJobEvent", () => {
-  it("file_done baixado incrementa downloaded/discovered/bytes", () => {
+  it("file_done downloaded increments downloaded/discovered/bytes", () => {
     const s = applyJobEvent(base, {
       t: "file_done",
       tab: "reels",
@@ -37,7 +37,7 @@ describe("applyJobEvent", () => {
     expect(s.bytesTotal).toBe(100);
   });
 
-  it("file_done skipped conta só skipped", () => {
+  it("file_done skipped counts only as skipped", () => {
     const s = applyJobEvent(base, {
       t: "file_done",
       tab: "reels",
@@ -51,12 +51,12 @@ describe("applyJobEvent", () => {
     expect(s.downloaded).toBe(0);
   });
 
-  it("rate_limited e cookies_expired setam flags", () => {
+  it("rate_limited and cookies_expired set flags", () => {
     expect(applyJobEvent(base, { t: "rate_limited" })!.rateLimited).toBe(true);
     expect(applyJobEvent(base, { t: "cookies_expired" })!.cookiesExpired).toBe(true);
   });
 
-  it("job_start cria um snapshot do zero", () => {
+  it("job_start creates a snapshot from scratch", () => {
     const s = applyJobEvent(null, {
       t: "job_start",
       account: "y",
@@ -70,7 +70,7 @@ describe("applyJobEvent", () => {
     expect(s.downloaded).toBe(0);
   });
 
-  it("job_done aplica o status final", () => {
+  it("job_done applies the final status", () => {
     const s = applyJobEvent(base, {
       t: "job_done",
       status: "completed",

@@ -1,8 +1,8 @@
-/** Per-account SQLite connection (`manifests/<conta>.db`) via node:sqlite (Node 24+). */
+/** Per-account SQLite connection (`manifests/<account>.db`) via node:sqlite (Node 24+). */
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { MANIFESTS } from "@/server/paths";
+import { MANIFESTS, assertSafeSegment } from "@/server/paths";
 import { SCHEMA } from "@/server/db/schema";
 
 // Connection cache (single writer = Node process; WAL allows concurrent reads).
@@ -13,16 +13,24 @@ export function dbPath(account: string): string {
 }
 
 export function openDb(account: string): DatabaseSync {
+  assertSafeSegment(account); // never let a crafted account escape manifests/
   const existing = cache.get(account);
   if (existing) return existing;
   mkdirSync(MANIFESTS, { recursive: true });
   const db = new DatabaseSync(dbPath(account));
   db.exec(SCHEMA);
-  // Lightweight migration: estimated-total column (gallery-dl --simulate).
-  try {
-    db.exec("ALTER TABLE account ADD COLUMN estimated_total INTEGER");
-  } catch {
-    /* column already exists */
+  // Idempotent column migrations: upgrade manifests created before a column
+  // existed. New databases already get these from SCHEMA above.
+  for (const col of [
+    "estimated_total INTEGER",
+    "network TEXT NOT NULL DEFAULT 'instagram'",
+    "note_language TEXT",
+  ]) {
+    try {
+      db.exec(`ALTER TABLE account ADD COLUMN ${col}`);
+    } catch {
+      /* column already exists */
+    }
   }
   cache.set(account, db);
   return db;

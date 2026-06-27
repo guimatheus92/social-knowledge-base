@@ -32,7 +32,7 @@ def note_files() -> list[Path]:
 def main() -> None:
     files = note_files()
     if not files:
-        print("Nenhuma nota em notes/. Rode o builder primeiro (prompts/build-notes.md).")
+        print("No notes in notes/. Run the builder first (prompts/build-notes.md).")
         return
 
     model = SentenceTransformer(MODEL_NAME)
@@ -55,7 +55,7 @@ def main() -> None:
         metas.append({"path": f.relative_to(ROOT).as_posix(), "digest": digest})
 
     if not ids:
-        print("Tudo já indexado (nenhuma mudança).")
+        print("Everything already indexed (no changes).")
         return
 
     # Chroma caps the upsert at ~5,461 items per call -> index in batches.
@@ -65,7 +65,7 @@ def main() -> None:
         sl = slice(i, i + BATCH)
         emb = model.encode(docs[sl], normalize_embeddings=True, batch_size=128).tolist()
         col.upsert(ids=ids[sl], documents=docs[sl], embeddings=emb, metadatas=metas[sl])
-    print(f"Indexadas/atualizadas {total} notas em {DB}")
+    print(f"Indexed/updated {total} notes in {DB}")
 
 
 if __name__ == "__main__":

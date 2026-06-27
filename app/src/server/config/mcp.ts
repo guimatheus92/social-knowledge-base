@@ -2,15 +2,18 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { MANIFESTS, MCP_CONFIG } from "@/server/paths";
+import { DEFAULT_NOTE_LANG } from "@/lib/languages";
 import type { AnalysisConfig } from "@/lib/types";
 
 export const ANALYSIS_DEFAULTS: AnalysisConfig = {
   whisperModel: "small",
-  whisperLanguage: "pt",
+  // Transcription follows the audio: 'auto' lets Whisper detect the language.
+  whisperLanguage: "auto",
   detail: "standard",
   maxFrames: 20,
   threshold: 0.3,
   ocrLanguage: "por+eng",
+  noteLanguage: DEFAULT_NOTE_LANG,
 };
 
 const OPTS_FILE = join(MANIFESTS, "analysis-config.json");
@@ -47,19 +50,23 @@ export function setAnalysisConfig(cfg: AnalysisConfig): void {
   const mcp = readMcp();
   if (mcp?.mcpServers?.["video-analyzer"]) {
     const srv = mcp.mcpServers["video-analyzer"];
-    srv.env = {
-      ...(srv.env ?? {}),
-      WHISPER_MODEL: cfg.whisperModel,
-      WHISPER_LANGUAGE: cfg.whisperLanguage,
-    };
+    const env = { ...(srv.env ?? {}), WHISPER_MODEL: cfg.whisperModel };
+    // 'auto' (or empty) = let Whisper detect the language → omit the env var.
+    if (cfg.whisperLanguage && cfg.whisperLanguage !== "auto") {
+      env.WHISPER_LANGUAGE = cfg.whisperLanguage;
+    } else {
+      delete env.WHISPER_LANGUAGE;
+    }
+    srv.env = env;
     writeFileSync(MCP_CONFIG, `${JSON.stringify(mcp, null, 2)}\n`, "utf-8");
   }
-  // 2) analyze_video options (the notes phase reads this file)
+  // 2) analyze_video options + note language (the notes phase reads this file)
   const opts = {
     detail: cfg.detail,
     maxFrames: cfg.maxFrames,
     threshold: cfg.threshold,
     ocrLanguage: cfg.ocrLanguage,
+    noteLanguage: cfg.noteLanguage,
   };
   writeFileSync(OPTS_FILE, `${JSON.stringify(opts, null, 2)}\n`, "utf-8");
 }

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""BATCH-transcribe an account's videos on the GPU (faster-whisper + CUDA).
+"""BATCH-transcribe an account's videos (faster-whisper) — GPU if available, else CPU.
 
-~20x faster than the openai-whisper CLI on CPU. Writes per-video sidecars
-(`downloads/<conta>/transcripts/<post_id>.{txt,json}`) — resumable (skips the
+Uses CUDA when a GPU is present (~20x faster) and falls back to CPU otherwise
+(works everywhere, just slower). Writes per-video sidecars
+(`downloads/<account>/transcripts/<post_id>.{txt,json}`) — resumable (skips the
 ones that already have a sidecar). The notes phase (Opus) reads these sidecars.
 
 Usage:
-    python scripts/transcribe_gpu.py <conta> [--limit N] [--category reel|highlight|story]
-                                              [--model medium] [--device cuda]
+    python scripts/transcribe_gpu.py <account> [--limit N] [--category reel|highlight|story]
+                                              [--model medium] [--device auto|cuda|cpu]
 """
 from __future__ import annotations
 
@@ -20,14 +21,17 @@ import sys
 import time
 from pathlib import Path
 
-# CUDA DLLs from pip (cublas/cudnn/cudart/nvrtc) onto the DLL search path (Windows).
-for _sp in set(site.getsitepackages() + [site.getusersitepackages()]):
-    for _b in glob.glob(os.path.join(_sp, "nvidia", "*", "bin")):
-        try:
-            os.add_dll_directory(_b)
-        except OSError:
-            pass
-        os.environ["PATH"] = _b + os.pathsep + os.environ.get("PATH", "")
+# CUDA DLLs from pip (cublas/cudnn/cudart/nvrtc) onto the DLL search path.
+# Windows-only mechanism (add_dll_directory doesn't exist elsewhere); a no-op
+# when the nvidia-*-cu12 wheels aren't installed (i.e. a CPU-only setup).
+if hasattr(os, "add_dll_directory"):
+    for _sp in set(site.getsitepackages() + [site.getusersitepackages()]):
+        for _b in glob.glob(os.path.join(_sp, "nvidia", "*", "bin")):
+            try:
+                os.add_dll_directory(_b)
+            except OSError:
+                pass
+            os.environ["PATH"] = _b + os.pathsep + os.environ.get("PATH", "")
 
 import av  # noqa: E402  (ships with faster-whisper; used to detect the audio track)
 from faster_whisper import WhisperModel  # noqa: E402
@@ -35,6 +39,16 @@ from faster_whisper import WhisperModel  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 DOWNLOADS = ROOT / "downloads"
 MANIFESTS = ROOT / "manifests"
+
+
+def cuda_available() -> bool:
+    """True if faster-whisper can use a CUDA GPU (ctranslate2 sees a device)."""
+    try:
+        import ctranslate2  # ships with faster-whisper
+
+        return ctranslate2.get_cuda_device_count() > 0
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def has_audio(path: Path) -> bool:
@@ -98,27 +112,44 @@ def items_to_do(account: str, category: str | None, limit: int | None) -> list[t
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Transcrição em lote na GPU (faster-whisper).")
+    p = argparse.ArgumentParser(description="Batch transcription on the GPU (faster-whisper).")
     p.add_argument("account")
     p.add_argument("--limit", type=int)
     p.add_argument("--category", choices=["reel", "highlight", "story", "post"])
     p.add_argument("--model", default=os.environ.get("WHISPER_GPU_MODEL", "medium"))
-    p.add_argument("--device", default="cuda")
+    p.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"],
+                   help="auto = GPU if available, else CPU")
     p.add_argument("--beam", type=int, default=1)
+    p.add_argument("--language", default="auto",
+                   help="audio language code (e.g. pt, en); 'auto' = Whisper detects it per video")
     args = p.parse_args()
+    # Transcription follows the audio: 'auto' lets Whisper detect the language per clip.
+    lang = None if args.language == "auto" else args.language
 
     todo = items_to_do(args.account, args.category, args.limit)
     if not todo:
-        print("Nada a transcrever (tudo já tem sidecar).")
+        print("Nothing to transcribe (everything already has a sidecar).")
         return
     tdir = DOWNLOADS / args.account / "transcripts"
     tdir.mkdir(parents=True, exist_ok=True)
 
-    compute = "float16" if args.device == "cuda" else "int8"
+    device = args.device
+    if device == "auto":
+        device = "cuda" if cuda_available() else "cpu"
+    compute = "float16" if device == "cuda" else "int8"
     t0 = time.time()
-    model = WhisperModel(args.model, device=args.device, compute_type=compute)
-    print(f"Modelo {args.model} em {args.device}/{compute} carregado em {time.time() - t0:.1f}s. "
-          f"{len(todo)} vídeos a transcrever.")
+    try:
+        model = WhisperModel(args.model, device=device, compute_type=compute)
+    except Exception as e:  # noqa: BLE001  (GPU broken/absent → fall back to CPU)
+        if device == "cuda":
+            print(f"GPU unavailable ({e}); falling back to CPU (slower).", file=sys.stderr)
+            device, compute = "cpu", "int8"
+            model = WhisperModel(args.model, device=device, compute_type=compute)
+        else:
+            raise
+    note = "  (CPU — may be slow; on CPU consider --model small)" if device == "cpu" else ""
+    print(f"Model {args.model} on {device}/{compute} loaded in {time.time() - t0:.1f}s. "
+          f"{len(todo)} videos to transcribe.{note}")
 
     done = 0
     silent = 0
@@ -134,13 +165,12 @@ def main() -> None:
             silent += 1
             continue
         try:
-            t = time.time()
             segments, info = model.transcribe(
-                str(video), language="pt", initial_prompt=GLOSSARY, beam_size=args.beam,
+                str(video), language=lang, initial_prompt=GLOSSARY, beam_size=args.beam,
             )
             segs = [{"start": round(s.start, 2), "end": round(s.end, 2), "text": s.text.strip()} for s in segments]
         except Exception as e:  # noqa: BLE001
-            print(f"  ERRO {post_id}: {e}", file=sys.stderr)
+            print(f"  ERROR {post_id}: {e}", file=sys.stderr)
             continue
         (tdir / f"{post_id}.json").write_text(
             json.dumps({"duration": info.duration, "segments": segs}, ensure_ascii=False, indent=1),
@@ -156,11 +186,11 @@ def main() -> None:
         audio_total += info.duration or 0
         if done % 10 == 0 or done == len(todo):
             wall = time.time() - wall0
-            print(f"  {done}/{len(todo)} | {audio_total / max(wall, 1):.0f}x tempo real "
-                  f"| {wall:.0f}s decorridos", flush=True)
+            print(f"  {done}/{len(todo)} | {audio_total / max(wall, 1):.0f}x real time "
+                  f"| {wall:.0f}s elapsed", flush=True)
 
-    print(f"Pronto: {done} transcritos, {silent} mudos (sem áudio) em {time.time() - wall0:.0f}s "
-          f"(~{audio_total / max(time.time() - wall0, 1):.0f}x tempo real). Sidecars em {tdir}")
+    print(f"Done: {done} transcribed, {silent} silent (no audio) in {time.time() - wall0:.0f}s "
+          f"(~{audio_total / max(time.time() - wall0, 1):.0f}x real time). Sidecars in {tdir}")
 
 
 if __name__ == "__main__":

@@ -1,89 +1,90 @@
 # CLAUDE.md — `scripts/`
 
-> Scripts Python standalone do pipeline. Cada um faz **uma** etapa e é **retomável**.
-> Visão geral do projeto: [`../CLAUDE.md`](../CLAUDE.md). Template de nota: [`../prompts/build-notes.md`](../prompts/build-notes.md).
+> Standalone Python scripts of the pipeline. Each one does **one** step and is **resumable**.
+> Project overview: [`../CLAUDE.md`](../CLAUDE.md). Note template: [`../prompts/build-notes.md`](../prompts/build-notes.md).
 
-## Fluxo (ordem do pipeline)
+## Flow (pipeline order)
 
 ```
-1. BAIXAR        download_instagram.py   → downloads/<perfil>/<aba>/*.mp4   (+ manifest)
-   (ou via app/, que grava manifests/<conta>.db)
-2. TRANSCREVER   transcribe_gpu.py       → transcripts/*.{txt,json} + <video>.vtt   (GPU)
-3. INDEXAR       index_transcripts.py    → .rag  (busca só com transcrição)
-                 index_notes.py          → .rag  (busca nas notas curadas)
-4. CONSULTAR     query.py "pergunta"     → trechos relevantes p/ citar
+1. DOWNLOAD      download_instagram.py   → downloads/<profile>/<tab>/*.mp4   (+ manifest)
+   (or via app/, which writes manifests/<account>.db)
+2. TRANSCRIBE    transcribe_gpu.py       → transcripts/*.{txt,json} + <video>.vtt   (GPU)
+3. INDEX         index_transcripts.py    → .rag  (search with transcription alone)
+                 index_notes.py          → .rag  (search the curated notes)
+4. QUERY         query.py "question"     → relevant snippets to cite
 ```
 
-A escrita das **notas** (`notes/<perfil>/*.md`) é feita pelo agente (Opus), seguindo
-`prompts/build-notes.md` — não há script para isso.
+Writing the **notes** (`notes/<profile>/*.md`) is done by the agent (Opus), following
+`prompts/build-notes.md` — there is no script for that.
 
-## Os scripts
+## The scripts
 
-### `download_instagram.py` — baixa um perfil
-Baixa **todos** os vídeos de um perfil (Reels, Stories, Em Destaque, Posts) via **gallery-dl**
-autenticado por `cookies.txt` (o instaloader morreu). Injeta o **ffmpeg no PATH** (sem ele o
-vídeo vem **sem áudio**) e usa `--download-archive` para retomar sem re-baixar.
+### `download_instagram.py` — downloads a profile
+Downloads **all** the videos from a profile (Reels, Stories, Highlights, Posts) via **gallery-dl**
+authenticated by `cookies.txt` (instaloader is dead). Injects **ffmpeg into PATH** (without it the
+video comes out **without audio**) and uses `--download-archive` to resume without re-downloading.
 ```
-python scripts/download_instagram.py <perfil> --cookies C:\caminho\cookies.txt
+python scripts/download_instagram.py <profile> --cookies C:\path\cookies.txt
                                      [--tabs highlights,reels,stories] [--range 1-50]
                                      [--include-images] [--skip-download]
 ```
-- **Saída:** `downloads/<perfil>/<aba>/*.mp4` + registra em `manifest.json` (raiz, **legado** em PT).
-- **Obs:** o caminho moderno de download é o **app** ([`../app/`](../app/)), que grava o manifest
-  em **SQLite** `manifests/<conta>.db`. O `transcribe_gpu.py` lê **esse** SQLite — então, se você
-  baixou só pela CLI, gere o SQLite com a migração do app (`app/src/server/migrate/importManifest.ts`).
+- **Output:** `downloads/<profile>/<tab>/*.mp4` + records to `manifest.json` (root, **legacy** in PT).
+- **Note:** the modern download path is the **app** ([`../app/`](../app/)), which writes the manifest
+  to **SQLite** `manifests/<account>.db`. `transcribe_gpu.py` reads **that** SQLite — so, if you
+  downloaded only via the CLI, generate the SQLite with the app's migration (`app/src/server/migrate/importManifest.ts`).
 
-### `transcribe_gpu.py` — transcreve em lote na GPU ⭐
-Transcrição em massa com **faster-whisper `medium` em CUDA** (~16–24× tempo real; ~9,6k vídeos
-em poucas horas vs ~150h no CPU). Lê o manifest SQLite (`status='downloaded'`), pula o que já tem
-sidecar (**retomável**), e usa um **glossário de domínio** (`initial_prompt`) p/ acertar nomes
-próprios (Doha, Smiles, Iberia…).
+### `transcribe_gpu.py` — transcribes in batch (GPU if available, otherwise CPU) ⭐
+Bulk transcription with **faster-whisper**: uses **GPU/CUDA when available** (`--device auto`, ~16–24×
+real time; ~9.6k videos in hours) and **falls back to CPU** automatically if there is no GPU (works on
+any machine, just slower — on CPU use `--model small`). Reads the SQLite manifest
+(`status='downloaded'`), skips what already has a sidecar (**resumable**), and uses a **domain glossary**
+(`initial_prompt`) to get proper nouns right (Doha, Smiles, Iberia…).
 ```
-python scripts/transcribe_gpu.py <conta> [--limit N] [--category reel|highlight|story|post]
+python scripts/transcribe_gpu.py <account> [--limit N] [--category reel|highlight|story|post]
                                  [--model medium] [--device cuda] [--beam 1]
 ```
-- **Saída:** `downloads/<conta>/transcripts/<post_id>.{txt,json}` (p/ as notas/RAG) **e**
-  `downloads/<conta>/<aba>/<post_id>.vtt` **ao lado do vídeo** — o MCP `video-analyzer` lê esse
-  `.vtt` como sidecar e **pula o Whisper**, fazendo só frames/OCR.
-- **Gotcha Windows:** o preâmbulo do script chama `os.add_dll_directory()` nas pastas
-  `nvidia/*/bin` do pip — sem isso dá `cublas64_12.dll cannot be loaded`. A **1ª** transcrição
-  numa GPU Blackwell (sm_120) é lenta (JIT dos kernels); depois estabiliza em ~2s.
-- **Glossário é por-conta:** o atual é de **milhas**. Para outra conta (ex.: culinária), troque a
-  constante `GLOSSARY` ou ela contamina a transcrição com termos errados.
+- **Output:** `downloads/<account>/transcripts/<post_id>.{txt,json}` (for the notes/RAG) **and**
+  `downloads/<account>/<tab>/<post_id>.vtt` **next to the video** — the MCP `video-analyzer` reads that
+  `.vtt` as a sidecar and **skips Whisper**, doing only frames/OCR.
+- **Windows gotcha:** the script's preamble calls `os.add_dll_directory()` on the pip
+  `nvidia/*/bin` folders — without that you get `cublas64_12.dll cannot be loaded`. The **1st** transcription
+  on a Blackwell GPU (sm_120) is slow (kernel JIT); afterwards it stabilizes at ~2s.
+- **Glossary is per-account:** the current one is for **miles**. For another account (e.g., cooking), swap the
+  `GLOSSARY` constant or it contaminates the transcription with wrong terms.
 
-### `index_transcripts.py` — indexa transcrições no RAG
-Adiciona os sidecars `.txt` à coleção Chroma `notes` (espaço **cosseno**), enriquecendo com
-origem/legenda do manifest. Torna a biblioteca **inteira** buscável **só com a transcrição**,
-antes de existir nota curada. Re-roda só o que mudou (hash).
+### `index_transcripts.py` — indexes transcriptions in the RAG
+Adds the `.txt` sidecars to the Chroma `notes` collection (**cosine** space), enriching with
+origin/caption from the manifest. Makes the **entire** library searchable **with the transcription alone**,
+before a curated note exists. Re-runs only what changed (hash).
 ```
-python scripts/index_transcripts.py [conta]
+python scripts/index_transcripts.py [account]
 ```
 
-### `index_notes.py` — indexa as notas no RAG
-Indexa `notes/**/*.md` (exceto `OVERVIEW.md`/`README.md`) na mesma coleção `notes` (cosseno),
-com embeddings multilíngues (bons p/ PT). Re-roda só as notas alteradas (hash).
+### `index_notes.py` — indexes the notes in the RAG
+Indexes `notes/**/*.md` (except `OVERVIEW.md`/`README.md`) into the same `notes` collection (cosine),
+with multilingual embeddings (good for PT). Re-runs only the changed notes (hash).
 ```
 python scripts/index_notes.py
 ```
 
-### `query.py` — consulta a base (RAG)
-Busca os trechos (notas **e** transcrições) mais relevantes p/ uma pergunta, com caminho p/ citar.
-Para resposta em prosa, passe os trechos ao Opus.
+### `query.py` — queries the base (RAG)
+Searches for the most relevant snippets (notes **and** transcriptions) for a question, with a path to cite.
+For a prose answer, pass the snippets to Opus.
 ```
-python scripts/query.py "o que aprendi sobre Clube Turbo?" [-k 5]
+python scripts/query.py "what did I learn about Clube Turbo?" [-k 5]
 ```
 
-### `video_url.py` — id da mídia → link do Instagram
-O `id` (nome do arquivo / citação nas notas) é o **pk** da mídia; este script converte para o
-**shortcode** e monta a URL clicável (`https://www.instagram.com/p/<shortcode>/`). Vale para
-**reels/posts**; stories e Em Destaque são efêmeros e podem não resolver.
+### `video_url.py` — media id → Instagram link
+The `id` (file name / citation in the notes) is the media's **pk**; this script converts it to the
+**shortcode** and builds the clickable URL (`https://www.instagram.com/p/<shortcode>/`). Works for
+**reels/posts**; stories and Highlights are ephemeral and may not resolve.
 ```
 python scripts/video_url.py 3924652210327473259 [<id> ...]
 ```
 
-## Convenções comuns
-- **`PYTHONUTF8=1`** no Windows (evita `UnicodeEncodeError` cp1252 nos prints).
-- **`.rag/`** = índice vetorial Chroma (gitignored). Apagar e re-rodar os `index_*` recria.
-- Tudo é **retomável**: download (archive), transcrição (sidecar existente), índices (hash).
-- **Dependências:** `pip install -r ../requirements.txt`; GPU: `faster-whisper` + wheels
-  `nvidia-*-cu12` (CUDA 12.8+ p/ Blackwell). ffmpeg no PATH p/ download/extração de áudio.
+## Common conventions
+- **`PYTHONUTF8=1`** on Windows (avoids `UnicodeEncodeError` cp1252 in prints).
+- **`.rag/`** = Chroma vector index (gitignored). Deleting and re-running the `index_*` recreates it.
+- Everything is **resumable**: download (archive), transcription (existing sidecar), indexes (hash).
+- **Dependencies:** `pip install -r ../requirements.txt`; GPU: `faster-whisper` + `nvidia-*-cu12`
+  wheels (CUDA 12.8+ for Blackwell). ffmpeg on PATH for download/audio extraction.

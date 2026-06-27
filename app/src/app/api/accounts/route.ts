@@ -25,14 +25,15 @@ const NewAccount = z.object({
   cookiesPath: z.string().optional(),
   media: z.array(z.enum(["image", "video"])).min(1).optional(),
   tabs: z.array(z.enum(["highlights", "reels", "stories", "posts"])).optional(),
+  network: z.string().optional(),
 });
 
 export async function POST(req: Request): Promise<Response> {
   let body;
   try {
     body = NewAccount.parse(await req.json());
-  } catch (e) {
-    return Response.json({ error: "Corpo inválido", detail: String(e) }, { status: 400 });
+  } catch {
+    return Response.json({ error: "invalid body" }, { status: 400 });
   }
   repo.upsertAccount({
     account: body.account,
@@ -40,6 +41,7 @@ export async function POST(req: Request): Promise<Response> {
     cookiesPath: body.cookiesPath ?? null,
     mediaTypes: body.media,
     tabs: body.tabs,
+    network: body.network,
   });
   return Response.json({
     ...repo.getAccount(body.account),

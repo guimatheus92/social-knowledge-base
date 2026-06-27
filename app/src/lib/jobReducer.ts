@@ -1,4 +1,4 @@
-/** Aplica um evento de progresso a um snapshot no cliente (espelha o servidor). */
+/** Applies a progress event to a client-side snapshot (mirrors the server). */
 import type { JobEvent, JobSnapshot } from "@/lib/types";
 
 export function applyJobEvent(snap: JobSnapshot | null, e: JobEvent): JobSnapshot | null {

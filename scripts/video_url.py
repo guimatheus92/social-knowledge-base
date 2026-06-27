@@ -36,12 +36,12 @@ def video_url(pk: str | int) -> str:
 def main() -> None:
     ids = sys.argv[1:]
     if not ids:
-        sys.exit("Uso: python scripts/video_url.py <id> [<id> ...]")
+        sys.exit("Usage: python scripts/video_url.py <id> [<id> ...]")
     for pk in ids:
         try:
             print(f"{pk} -> {video_url(pk)}")
         except ValueError:
-            print(f"{pk} -> (id inválido)", file=sys.stderr)
+            print(f"{pk} -> (invalid id)", file=sys.stderr)
 
 
 if __name__ == "__main__":

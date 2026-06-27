@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
+import { NOTE_LANGS, noteLangNative } from "@/lib/languages";
 import type { AnalysisConfig } from "@/lib/types";
 import { useT } from "@/i18n/I18nProvider";
 
@@ -37,6 +38,7 @@ export function AnalysisSettingsPanel() {
   const [cfg, setCfg] = useState<AnalysisConfig | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- copy fetched server config into editable local state
     if (data) setCfg(data);
   }, [data]);
 
@@ -77,6 +79,23 @@ export function AnalysisSettingsPanel() {
 
         {cfg ? (
           <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">{t("analysis.noteLanguage")}</Label>
+              <Select value={cfg.noteLanguage} onValueChange={(v) => v && patch({ noteLanguage: v })}>
+                <SelectTrigger>
+                  <SelectValue>{(v) => noteLangNative(String(v))}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {NOTE_LANGS.map((l) => (
+                    <SelectItem key={l.code} value={l.code}>
+                      {l.native}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">{t("analysis.noteLanguageHelp")}</p>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label className="text-xs text-muted-foreground">{t("analysis.whisperModel")}</Label>
@@ -98,7 +117,7 @@ export function AnalysisSettingsPanel() {
                 <Input
                   value={cfg.whisperLanguage}
                   onChange={(e) => patch({ whisperLanguage: e.target.value })}
-                  placeholder="pt"
+                  placeholder="auto"
                 />
               </div>
             </div>

@@ -9,6 +9,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { StatusPill } from "@/components/account/StatusPill";
+import { AccountAvatar } from "@/components/account/AccountAvatar";
+import { NotesControl } from "@/components/account/NotesControl";
 import { MediaCountBadges } from "@/components/account/MediaCountBadges";
 import { SizeMeter } from "@/components/account/SizeMeter";
 import { ElapsedTimer } from "@/components/account/ElapsedTimer";
@@ -24,8 +26,9 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
+import { networkMeta } from "@/lib/networks";
 import type { MediaType } from "@/lib/types";
-import { useT } from "@/i18n/I18nProvider";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export function AccountCard({
   summary,
@@ -34,6 +37,7 @@ export function AccountCard({
   onStop,
   onSync,
   onCount,
+  onPeek,
   onMediaChange,
 }: {
   summary: AccountSummary;
@@ -42,9 +46,10 @@ export function AccountCard({
   onStop: () => void;
   onSync: () => void;
   onCount: () => void;
+  onPeek: () => Promise<{ newCount: number; checked: number; tab: string }>;
   onMediaChange: (media: MediaType[]) => void;
 }) {
-  const t = useT();
+  const { t, locale } = useI18n();
   const status = snapshot?.status ?? summary.job?.status ?? "idle";
   const running = snapshot?.status === "running";
   const busy = status === "running" || status === "queued";
@@ -63,9 +68,17 @@ export function AccountCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className="truncate">@{summary.account}</span>
-          <StatusPill status={status} rateLimited={snapshot?.rateLimited} />
+        <CardTitle className="flex min-w-0 items-center gap-3">
+          <AccountAvatar account={summary.account} network={summary.network} />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="truncate font-heading">@{summary.account}</span>
+              <StatusPill status={status} rateLimited={snapshot?.rateLimited} />
+            </div>
+            <span className="text-xs font-normal text-muted-foreground">
+              {networkMeta(summary.network).label}
+            </span>
+          </div>
         </CardTitle>
         <CardAction className="flex items-center gap-1.5">
           <Tooltip>
@@ -73,7 +86,7 @@ export function AccountCard({
               render={
                 <Link
                   href={`/library/${encodeURIComponent(summary.account)}`}
-                  className="inline-flex h-9 items-center gap-2 rounded-md border border-input px-3 text-sm font-medium transition hover:bg-muted"
+                  className="inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-foreground outline-none transition hover:bg-white/[0.06] hover:text-foreground focus-visible:bg-white/[0.06] focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
                 >
                   <Images className="size-4" />
                   {t("card.library")}
@@ -87,11 +100,11 @@ export function AccountCard({
             onPlay={onPlay}
             onStop={onStop}
           />
-          <SyncButton onSync={onSync} />
+          <SyncButton onSync={onSync} onPeek={onPeek} />
           <Tooltip>
             <TooltipTrigger
               render={
-                <Button variant="outline" onClick={onCount} disabled={busy}>
+                <Button variant="ghost" size="sm" onClick={onCount} disabled={busy}>
                   <Sigma className="size-4" />
                   {t("card.count")}
                 </Button>
@@ -116,15 +129,15 @@ export function AccountCard({
 
         {counting ? (
           <span className="text-xs text-amber-400">
-            {t("card.counting", { n: formatNumber(snapshot?.discovered ?? 0) })}
+            {t("card.counting", { n: formatNumber(snapshot?.discovered ?? 0, locale) })}
           </span>
         ) : est != null ? (
           <span className="text-xs text-muted-foreground">
-            {t("card.profileEstimate", { n: formatNumber(est) })} ·{" "}
+            {t("card.profileEstimate", { n: formatNumber(est, locale) })} ·{" "}
             {remaining === 0 ? (
               <span className="text-emerald-400">{t("card.allDownloaded")}</span>
             ) : (
-              <span>{t("card.remaining", { n: formatNumber(remaining ?? 0) })}</span>
+              <span>{t("card.remaining", { n: formatNumber(remaining ?? 0, locale) })}</span>
             )}
           </span>
         ) : null}
@@ -135,7 +148,7 @@ export function AccountCard({
               <button
                 type="button"
                 onClick={openFolder}
-                className="group flex w-fit max-w-full items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+                className="group flex w-fit max-w-full items-center gap-1.5 rounded-sm text-xs text-muted-foreground outline-none transition hover:text-foreground focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
               >
                 <Folder className="size-3.5 shrink-0" />
                 <span className="truncate font-mono">{summary.savePath}</span>
@@ -155,6 +168,15 @@ export function AccountCard({
             <strong>{t("card.download")}</strong>
             {t("card.pickMediaHintAfter")}
           </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3 text-sm">
+          <span className="font-medium text-muted-foreground">{t("notes.label")}</span>
+          <NotesControl
+            account={summary.account}
+            unnoted={summary.counts.unnotedVideos}
+            noteLanguage={summary.noteLanguage}
+          />
         </div>
       </CardContent>
     </Card>

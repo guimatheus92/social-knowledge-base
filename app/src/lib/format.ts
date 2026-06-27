@@ -1,5 +1,9 @@
 import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { enUS, ptBR } from "date-fns/locale";
+import type { Locale } from "@/i18n/dictionary";
+
+const intlLocale = (l: Locale): string => (l === "en" ? "en-US" : "pt-BR");
+const dfnsLocale = (l: Locale) => (l === "en" ? enUS : ptBR);
 
 export function formatBytes(bytes: number | null | undefined): string {
   const b = bytes ?? 0;
@@ -10,7 +14,7 @@ export function formatBytes(bytes: number | null | undefined): string {
   return `${v.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
-/** h:mm:ss ou m:ss */
+/** h:mm:ss or m:ss */
 export function formatDuration(seconds: number | null | undefined): string {
   const s = Math.max(0, Math.floor(seconds ?? 0));
   const h = Math.floor(s / 3600);
@@ -20,30 +24,34 @@ export function formatDuration(seconds: number | null | undefined): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
 }
 
-export function formatRelativeTime(iso: string | null | undefined): string {
-  if (!iso) return "nunca";
+/** Localized "2 hours ago". Returns null when there's no date (caller shows "never"). */
+export function formatRelativeTime(
+  iso: string | null | undefined,
+  locale: Locale = "pt",
+): string | null {
+  if (!iso) return null;
   try {
-    return formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ptBR });
+    return formatDistanceToNow(new Date(iso), { addSuffix: true, locale: dfnsLocale(locale) });
   } catch {
     return "—";
   }
 }
 
-export function formatDateTime(iso: string | null | undefined): string {
+export function formatDateTime(iso: string | null | undefined, locale: Locale = "pt"): string {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleString("pt-BR");
+    return new Date(iso).toLocaleString(intlLocale(locale));
   } catch {
     return "—";
   }
 }
 
-/** ETA dado itens restantes e ritmo (itens/seg). */
+/** ETA given remaining items and rate (items/sec). */
 export function formatEta(remaining: number, ratePerSec: number): string {
   if (ratePerSec <= 0 || remaining <= 0) return "—";
   return formatDuration(remaining / ratePerSec);
 }
 
-export function formatNumber(n: number): string {
-  return n.toLocaleString("pt-BR");
+export function formatNumber(n: number, locale: Locale = "pt"): string {
+  return n.toLocaleString(intlLocale(locale));
 }

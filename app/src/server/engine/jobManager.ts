@@ -182,6 +182,8 @@ class JobManager {
         savePath: join(DOWNLOADS, account),
         cookiesPath: opts.cookiesPath,
         mediaTypes: opts.media ?? ["video"],
+        tabs: [tab],
+        network: providerId,
       });
     }
     return this.start({
@@ -256,7 +258,7 @@ class JobManager {
         results.push(r);
       });
     } catch (e) {
-      this.dispatch(j, { t: "log", level: "error", msg: `job falhou: ${(e as Error).message}` });
+      this.dispatch(j, { t: "log", level: "error", msg: `job failed: ${(e as Error).message}` });
     }
 
     const elapsedSeconds = j.startedAt ? (Date.now() - j.startedAt) / 1000 : 0;
@@ -274,7 +276,7 @@ class JobManager {
         repo.exportJson(j.account);
       }
     } catch (e) {
-      this.dispatch(j, { t: "log", level: "warn", msg: `pós-processo: ${(e as Error).message}` });
+      this.dispatch(j, { t: "log", level: "warn", msg: `post-process: ${(e as Error).message}` });
     }
 
     this.dispatch(j, {

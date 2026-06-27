@@ -12,8 +12,12 @@ export function useJobStream(account: string | null): void {
   const qc = useQueryClient();
   const t = useT();
   // Keep the latest t() without re-subscribing the SSE when the locale changes.
+  // Write the ref in an effect (not during render) so the SSE callbacks, which
+  // read it asynchronously, always see the latest committed translator.
   const tRef = useRef(t);
-  tRef.current = t;
+  useEffect(() => {
+    tRef.current = t;
+  });
   // Avoids repeating the same warning toast during a job.
   const warned = useRef({ rate: false, cookies: false });
   const jobMode = useRef<string>("full");

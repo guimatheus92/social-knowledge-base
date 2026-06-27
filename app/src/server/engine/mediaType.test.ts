@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mediaFilterArgs, mediaTypeForFile } from "@/server/engine/mediaType";
 
 describe("mediaTypeForFile", () => {
-  it("classifica vídeo e imagem por extensão", () => {
+  it("classifies video and image by extension", () => {
     expect(mediaTypeForFile("a.mp4")).toBe("video");
     expect(mediaTypeForFile("A.MP4")).toBe("video");
     expect(mediaTypeForFile("x/y/a.webm")).toBe("video");
@@ -14,16 +14,16 @@ describe("mediaTypeForFile", () => {
 });
 
 describe("mediaFilterArgs", () => {
-  it("ambas as mídias → sem filtro", () => {
+  it("both media types → no filter", () => {
     expect(mediaFilterArgs(["image", "video"])).toEqual([]);
   });
-  it("só vídeo → filtra extensões de vídeo", () => {
+  it("video only → filters video extensions", () => {
     const a = mediaFilterArgs(["video"]);
     expect(a[0]).toBe("--filter");
     expect(a[1]).toContain("mp4");
     expect(a[1]).not.toContain("jpg");
   });
-  it("só imagem → filtra extensões de imagem", () => {
+  it("image only → filters image extensions", () => {
     const a = mediaFilterArgs(["image"]);
     expect(a[1]).toContain("jpg");
     expect(a[1]).not.toContain("mp4");

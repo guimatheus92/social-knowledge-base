@@ -7,12 +7,13 @@ import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { DatabaseSync } from "node:sqlite";
 import { existsSync, readdirSync, statSync } from "node:fs";
-import { basename, extname, join, relative, sep } from "node:path";
+import { basename, extname, join, posix, relative, sep } from "node:path";
 import { ROOT } from "@/server/paths";
 import { buildEnv } from "@/server/engine/ffmpeg";
 import { mediaFilterArgs, mediaTypeForFile } from "@/server/engine/mediaType";
 import { getProvider, providerForUrl, type SourceProvider } from "@/server/providers";
 import * as repo from "@/server/db/repository";
+import { ensureThumb, thumbPathFor } from "@/server/engine/thumbnails";
 import { TAB_ORIGIN, type MediaType, type Tab } from "@/lib/types";
 import type { JobEvent } from "@/server/engine/progress";
 
@@ -161,7 +162,7 @@ export function resolveOwner(
     child.on("close", () => {
       const username = findUsername(out);
       if (!username) {
-        reject(new Error(`Não consegui identificar o dono do vídeo (cookies válidos?). ${err.slice(0, 200)}`.trim()));
+        reject(new Error(`Could not identify the video's owner (valid cookies?). ${err.slice(0, 200)}`.trim()));
         return;
       }
       resolve({ account: username, tab: provider.kindFromUrl(url) as Tab, providerId: provider.id });
@@ -169,8 +170,69 @@ export function resolveOwner(
   });
 }
 
+/**
+ * Peeks the top `count` items of a tab via `gallery-dl --simulate` against the
+ * resume archive and reports how many are NEW (not yet downloaded). One small
+ * request — powers the "New posts" delta preview before committing to a sync.
+ */
+export function peekNew(o: {
+  account: string;
+  saveDir: string;
+  cookiesPath: string;
+  tab: Tab;
+  count: number;
+  provider?: SourceProvider;
+  signal?: AbortSignal;
+}): Promise<{ newCount: number; checked: number }> {
+  const provider = o.provider ?? getProvider();
+  try {
+    seedArchive(o.saveDir, o.tab); // reflect what's already on disk
+  } catch {
+    /* best effort */
+  }
+  const args = [
+    "-m", "gallery_dl", "--simulate",
+    "--download-archive", archivePath(o.saveDir, o.tab),
+    "--cookies", o.cookiesPath,
+    "-o", "videos=true",
+    "--range", `1-${o.count}`,
+    ...provider.kindArgs(o.tab),
+    provider.profileUrl(o.account),
+  ];
+  return new Promise((resolve, reject) => {
+    const child = spawn(PYTHON, args, { env: buildEnv(), signal: o.signal, windowsHide: true });
+    let newCount = 0;
+    let checked = 0;
+    const rl = createInterface({ input: child.stdout });
+    rl.on("line", (line) => {
+      let p = line.trim();
+      if (!p) return;
+      const isSkip = p.startsWith("# "); // gallery-dl marks already-archived items
+      if (isSkip) p = p.slice(2).trim();
+      if (!mediaTypeForFile(p)) return;
+      const pid = basename(p, extname(p));
+      if (pid.includes(".")) return; // yt-dlp fragment
+      checked += 1;
+      if (!isSkip) newCount += 1;
+    });
+    child.on("error", reject);
+    child.on("close", () => resolve({ newCount, checked }));
+  });
+}
+
 const RE_RATE_LIMIT = /401|please wait a few minutes/i;
 const RE_LOGIN_REDIRECT = /accounts\/login|redirect to login/i;
+
+/**
+ * Post id = filename without extension. gallery-dl prints `\` paths on Windows
+ * and `/` on Linux/Docker, so normalize both separators and parse with the
+ * posix rules — keeps stdout parsing identical on every platform (the test
+ * runner and the container are Linux; the user's machine is Windows).
+ */
+function postIdFromPath(p: string): string {
+  const norm = p.replace(/\\/g, "/");
+  return posix.basename(norm, posix.extname(norm));
+}
 
 /** Is a stdout line a media path from this tab? (downloaded or `# ` skip) */
 export function parseMediaLine(
@@ -187,9 +249,8 @@ export function parseMediaLine(
   const mediaType = mediaTypeForFile(p);
   if (!mediaType) return null;
   // confirm it belongs to the tab's folder (avoids false positives in logs)
-  const tabDir = `${sep}${tab}${sep}`;
-  if (!p.includes(tabDir) && !p.includes(`/${tab}/`)) return null;
-  const postId = basename(p, extname(p));
+  if (!p.replace(/\\/g, "/").includes(`/${tab}/`)) return null;
+  const postId = postIdFromPath(p);
   if (postId.includes(".")) return null; // yt-dlp fragment (<id>.f...) — not real media
   return { postId, mediaType, path: p, skipped };
 }
@@ -204,7 +265,7 @@ export function runTab(o: TabRunOptions): Promise<TabRunResult> {
       try {
         seedArchive(o.saveDir, o.tab);
       } catch (e) {
-        o.emit({ t: "log", level: "warn", msg: `[${o.tab}] seed archive falhou: ${(e as Error).message}` });
+        o.emit({ t: "log", level: "warn", msg: `[${o.tab}] seed archive failed: ${(e as Error).message}` });
       }
     }
 
@@ -215,6 +276,9 @@ export function runTab(o: TabRunOptions): Promise<TabRunResult> {
     });
 
     let lastTs = Date.now();
+    // Hoisted: where this account's posters go (matches the thumb route). Stable
+    // for the run, so resolve it once instead of per downloaded file.
+    const thumbDir = repo.getAccount(o.account)?.savePath ?? join(ROOT, "downloads", o.account);
     const out = createInterface({ input: child.stdout });
     out.on("line", (line) => {
       if (o.simulate) {
@@ -224,7 +288,7 @@ export function runTab(o: TabRunOptions): Promise<TabRunResult> {
         if (p.startsWith("# ")) p = p.slice(2).trim();
         const mt = mediaTypeForFile(p);
         if (!mt) return;
-        const pid = basename(p, extname(p));
+        const pid = postIdFromPath(p);
         if (pid.includes(".")) return; // yt-dlp fragment
         result.skipped += 1;
         o.emit({ t: "file_done", tab: o.tab, postId: pid, mediaType: mt, bytes: 0, elapsedMs: 0, skipped: true });
@@ -256,6 +320,10 @@ export function runTab(o: TabRunOptions): Promise<TabRunResult> {
         downloadedAt: new Date(now).toISOString(),
         downloadMs: elapsedMs,
       });
+      // Pre-generate the poster (background, capped) so the gallery is instant later.
+      if (m.mediaType === "video") {
+        void ensureThumb(m.path, thumbPathFor(thumbDir, m.postId));
+      }
       result.downloaded += 1;
       o.emit({ t: "file_done", tab: o.tab, postId: m.postId, mediaType: m.mediaType, bytes, elapsedMs, skipped: false });
     });
@@ -270,7 +338,7 @@ export function runTab(o: TabRunOptions): Promise<TabRunResult> {
     });
 
     child.on("error", (e) => {
-      o.emit({ t: "log", level: "error", msg: `[${o.tab}] spawn falhou: ${e.message}` });
+      o.emit({ t: "log", level: "error", msg: `[${o.tab}] spawn failed: ${e.message}` });
       result.errors += 1;
       o.emit({ t: "tab_done", tab: o.tab, downloaded: result.downloaded, skipped: result.skipped, errors: result.errors });
       resolve(result);
@@ -278,7 +346,7 @@ export function runTab(o: TabRunOptions): Promise<TabRunResult> {
 
     child.on("close", (code) => {
       if (code && code !== 0) {
-        o.emit({ t: "log", level: "warn", msg: `[${o.tab}] gallery-dl saiu com código ${code}` });
+        o.emit({ t: "log", level: "warn", msg: `[${o.tab}] gallery-dl exited with code ${code}` });
       }
       o.emit({ t: "tab_done", tab: o.tab, downloaded: result.downloaded, skipped: result.skipped, errors: result.errors });
       resolve(result);

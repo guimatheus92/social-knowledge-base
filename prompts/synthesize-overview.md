@@ -1,24 +1,24 @@
-# Prompt: sintetizar OVERVIEW.md (resumão por tema)
+# Prompt: synthesize OVERVIEW.md (theme-by-theme summary)
 
-Objetivo: gerar/atualizar `notes/<perfil>/OVERVIEW.md` consolidando o aprendizado de **todas** as notas, agrupado por tema. Use **map-reduce** — não tente ler tudo de uma vez (são muitos vídeos).
+Goal: generate/update `notes/<profile>/OVERVIEW.md`, consolidating the learnings from **all** notes, grouped by theme. Use **map-reduce** — don't try to read everything at once (there are many videos).
 
-## Passos
+## Steps
 
-1. **Map (coleta barata):** leia só o **frontmatter** de todas as `notes/**/*.md` (campos `temas`, `video`, `perfil`). Não leia o corpo ainda. Agrupe as notas por `tema`.
-2. **Reduce por tema:** para cada tema:
-   - Leia os corpos das notas daquele tema. Se forem muitas, resuma em **lotes** (ex.: 20 por vez) e depois combine os resumos parciais.
-   - Produza 3-7 **aprendizados recorrentes** do tema, cada um com link para as notas-fonte: `[arquivo](notes/<perfil>/videos/<arquivo>.md)`.
-3. **Montar `notes/<perfil>/OVERVIEW.md`:**
-   - Topo: sumário com a lista de temas (links âncora) + contagem de vídeos processados.
-   - Uma seção `## <tema>` por tema, com os aprendizados consolidados e links.
-   - Seção final `## Lacunas / dúvidas` com o que ficou ambíguo ou contraditório entre vídeos.
-4. **Atualizar `manifest.json.sintese`:** `ultimo_overview_em` = timestamp ISO (`date -Iseconds`); `videos_no_ultimo_overview` = nº de vídeos com `lido_em != null`.
+1. **Map (cheap collection):** read only the **frontmatter** of every `notes/**/*.md` (fields `themes`, `video`, `profile`). Don't read the body yet. Group the notes by `theme`.
+2. **Reduce per theme:** for each theme:
+   - Read the bodies of that theme's notes. If there are many, summarize in **batches** (e.g. 20 at a time) and then combine the partial summaries.
+   - Produce 3–7 **recurring takeaways** for the theme, each linking back to its source notes: `[file](notes/<profile>/videos/<file>.md)`.
+3. **Assemble `notes/<profile>/OVERVIEW.md`:**
+   - Top: a summary with the list of themes (anchor links) + count of processed videos.
+   - One `## <theme>` section per theme, with the consolidated takeaways and links.
+   - A final `## Gaps / open questions` section with whatever stayed ambiguous or contradictory across videos.
+4. **Record the overview state:** save this run's timestamp (`date -Iseconds`) and the number of notes covered, so the next run can be incremental (the app keeps this in the SQLite `overview_state` table; in the CLI flow, track it yourself).
 
-## Incremental (retomável)
+## Incremental (resumable)
 
-Se `OVERVIEW.md` já existe: re-sintetize **apenas** os temas cujas notas mudaram desde `sintese.ultimo_overview_em` (compare com `lido_em` das notas), preservando as demais seções. Assim o resumão acompanha a entrada de novos vídeos sem refazer tudo.
+If `OVERVIEW.md` already exists: re-synthesize **only** the themes whose notes changed since the last overview, preserving the other sections. This way the summary keeps up with new videos without redoing everything.
 
-## Depois
+## After
 
-- Atualize o RAG: `python scripts/index_notes.py`.
-- Teste a consulta: `python scripts/query.py "o que aprendi sobre <tema>?"`.
+- Update the RAG: `python scripts/index_notes.py`.
+- Test the query: `python scripts/query.py "what did I learn about <theme>?"`.

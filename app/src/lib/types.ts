@@ -25,7 +25,7 @@ export type ItemStatus =
   | "read"
   | "error";
 
-/** A target account (downloaded profile). One row per `manifests/<conta>.db` database. */
+/** A target account (downloaded profile). One row per `manifests/<account>.db` database. */
 export interface Account {
   account: string;
   savePath: string;
@@ -33,6 +33,10 @@ export interface Account {
   mediaTypes: MediaType[];
   tabs: Tab[];
   parallelism: number;
+  /** Source network provider id (instagram, tiktok, …). */
+  network: string;
+  /** Per-account override for the note language (null = follow the global default). */
+  noteLanguage: string | null;
   elapsedSeconds: number;
   lastSyncedAt: string | null;
   /** Estimated total of items in the profile (via "Count" / gallery-dl --simulate). */
@@ -67,10 +71,14 @@ export interface Item {
 export interface Counts {
   total: number;
   byMedia: Record<MediaType, number>;
+  /** Bytes on disk per media type (for the disk breakdown). */
+  bytesByMedia: Record<MediaType, number>;
   byStatus: Record<string, number>;
   byOrigin: Record<string, number>;
   bytesTotal: number;
   downloaded: number;
+  /** Downloaded videos that don't have a curated note yet (note candidates). */
+  unnotedVideos: number;
 }
 
 /* ---- Job types (shared server↔UI; no runtime) ---- */
@@ -126,7 +134,70 @@ export interface AccountSummary extends Account {
 /** SSE message: either an initial snapshot or a progress event. */
 export type StreamMessage = { t: "snapshot"; snapshot: JobSnapshot | null } | JobEvent;
 
-/** LLM reading config (Whisper + the MCP's analyze_video options). */
+/** Generation metadata for a curated note (Claude Code token usage). */
+export interface NoteMeta {
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number | null;
+  generatedAt: string;
+}
+
+/** Progress of a per-account note-generation batch (Claude Code). */
+export interface NotesJobStatus {
+  account: string;
+  status: "idle" | "running" | "done" | "stopped" | "error";
+  total: number;
+  done: number;
+  errors: number;
+  current: string | null;
+  recentLog: string[];
+}
+
+/** Progress of a cross-account bulk note-generation run (accounts processed sequentially). */
+export interface BulkNotesStatus {
+  status: "idle" | "running" | "done" | "stopped" | "error";
+  /** Accounts in the run (only those that had unnoted videos at start). */
+  accounts: string[];
+  /** The account currently being processed, or null. */
+  currentAccount: string | null;
+  accountsDone: number;
+  totalAccounts: number;
+  /** Videos noted / to note, summed across all accounts in the run. */
+  done: number;
+  total: number;
+  errors: number;
+}
+
+/** A downloaded item tagged with its owning profile + network (the global Gallery). */
+export interface GalleryItem extends Item {
+  account: string;
+  network: string;
+}
+
+/** Filters + sort for the global Gallery — one shape shared by the client hook
+ *  and the server aggregator so `media`/`origin`/`sort`/`order` stay typed. */
+export interface GalleryQuery {
+  q?: string;
+  /** A single profile (account name). */
+  profile?: string;
+  network?: string;
+  media?: MediaType;
+  origin?: Origin;
+  sort?: "date" | "size" | "duration";
+  order?: "asc" | "desc";
+}
+
+/** A RAG search result (transcript or note chunk) mapped back to its source. */
+export interface SearchHit {
+  path: string;
+  score: number;
+  excerpt: string;
+  account: string | null;
+  postId: string | null;
+  kind: "note" | "transcript" | "other";
+}
+
+/** LLM reading config (Whisper + the MCP's analyze_video options + note language). */
 export interface AnalysisConfig {
   whisperModel: string;
   whisperLanguage: string;
@@ -134,4 +205,6 @@ export interface AnalysisConfig {
   maxFrames: number;
   threshold: number;
   ocrLanguage: string;
+  /** Default language the LLM writes notes in (per-account/per-video can override). */
+  noteLanguage: string;
 }

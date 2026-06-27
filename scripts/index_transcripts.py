@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Indexa os transcripts (sidecars da GPU) no mesmo vetor das notas (Chroma/RAG).
+"""Indexes the transcripts (GPU sidecars) into the same vector store as the notes (Chroma/RAG).
 
-Torna a biblioteca consultável só com a transcrição — antes de existir nota
-curada. Lê `downloads/<conta>/transcripts/<post_id>.txt`, enriquece com
-origem/legenda do manifest SQLite e faz upsert na coleção "notes".
-Re-rodar só (re)indexa o que mudou (hash).
+Makes the library queryable with the transcription alone — before a curated note
+exists. Reads `downloads/<account>/transcripts/<post_id>.txt`, enriches it with
+origin/caption from the SQLite manifest, and upserts into the "notes" collection.
+Re-running only (re)indexes what changed (hash).
 
-Uso:
-    python scripts/index_transcripts.py [conta]
+Usage:
+    python scripts/index_transcripts.py [account]
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 
 def meta_for(account: str) -> dict[str, tuple[str, str]]:
-    """{post_id: (origin, caption)} do manifest, se existir."""
+    """{post_id: (origin, caption)} from the manifest, if it exists."""
     path = MANIFESTS / f"{account}.db"
     if not path.exists():
         return {}
@@ -44,7 +44,7 @@ def main() -> None:
     if only:
         sidecars = [f for f in sidecars if f.parts[-3] == only]
     if not sidecars:
-        print("Nenhum transcript em downloads/<conta>/transcripts/. Rode transcribe_gpu.py.")
+        print("No transcripts in downloads/<account>/transcripts/. Run transcribe_gpu.py.")
         return
 
     model = SentenceTransformer(MODEL_NAME)
@@ -61,9 +61,9 @@ def main() -> None:
         if account not in meta_cache:
             meta_cache[account] = meta_for(account)
         origin, caption = meta_cache[account].get(post_id, ("", ""))
-        header = f"@{account} · {origin or 'vídeo'} · transcrição"
+        header = f"@{account} · {origin or 'video'} · transcript"
         if caption:
-            header += f"\nLegenda: {caption[:200]}"
+            header += f"\nCaption: {caption[:200]}"
         doc = f"{header}\n\n{text}"
         digest = hashlib.sha1(doc.encode("utf-8")).hexdigest()
         nid = f"transcript:{account}/{post_id}"
@@ -84,18 +84,18 @@ def main() -> None:
         })
 
     if not ids:
-        print("Tudo já indexado (nenhuma mudança).")
+        print("Everything already indexed (no changes).")
         return
 
-    # Chroma limita o upsert a ~5.461 itens por chamada → indexa em lotes.
+    # Chroma caps the upsert at ~5,461 items per call -> index in batches.
     BATCH = 5000
     total = len(ids)
     for i in range(0, total, BATCH):
         sl = slice(i, i + BATCH)
         emb = model.encode(docs[sl], normalize_embeddings=True, batch_size=128).tolist()
         col.upsert(ids=ids[sl], documents=docs[sl], embeddings=emb, metadatas=metas[sl])
-        print(f"  {min(i + BATCH, total)}/{total} indexados", flush=True)
-    print(f"Indexados/atualizados {total} transcripts em {DB}")
+        print(f"  {min(i + BATCH, total)}/{total} indexed", flush=True)
+    print(f"Indexed/updated {total} transcripts in {DB}")
 
 
 if __name__ == "__main__":

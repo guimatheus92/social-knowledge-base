@@ -50,6 +50,8 @@ function rowToAccount(r: any): Account {
     mediaTypes: String(r.media_types).split(",").filter(Boolean) as MediaType[],
     tabs: String(r.tabs).split(",").filter(Boolean) as Tab[],
     parallelism: num(r.parallelism),
+    network: r.network ?? "instagram",
+    noteLanguage: r.note_language ?? null,
     elapsedSeconds: num(r.elapsed_seconds),
     lastSyncedAt: r.last_synced_at ?? null,
     estimatedTotal: r.estimated_total == null ? null : num(r.estimated_total),
@@ -77,14 +79,17 @@ export interface AccountInput {
   mediaTypes?: MediaType[];
   tabs?: Tab[];
   parallelism?: number;
+  /** Source network provider id; set once at creation, defaults to instagram. */
+  network?: string;
 }
 
 export function upsertAccount(a: AccountInput): void {
   const db = openDb(a.account);
   const now = new Date().toISOString();
+  // `network` is identity: set once at creation, never overwritten on conflict.
   db.prepare(
-    `INSERT INTO account (account, save_path, cookies_path, media_types, tabs, parallelism, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?)
+    `INSERT INTO account (account, save_path, cookies_path, media_types, tabs, parallelism, network, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?)
      ON CONFLICT(account) DO UPDATE SET
        save_path=excluded.save_path,
        cookies_path=COALESCE(excluded.cookies_path, account.cookies_path),
@@ -99,6 +104,7 @@ export function upsertAccount(a: AccountInput): void {
     (a.mediaTypes ?? ["video"]).join(","),
     (a.tabs ?? ["highlights", "reels", "stories"]).join(","),
     a.parallelism ?? 2,
+    a.network ?? "instagram",
     now,
     now,
   );
@@ -106,7 +112,7 @@ export function upsertAccount(a: AccountInput): void {
 
 export function updateAccountSettings(
   account: string,
-  p: { mediaTypes?: MediaType[]; tabs?: Tab[]; savePath?: string; parallelism?: number },
+  p: { mediaTypes?: MediaType[]; tabs?: Tab[]; savePath?: string; parallelism?: number; noteLanguage?: string },
 ): void {
   const sets: string[] = [];
   const vals: (string | number)[] = [];
@@ -125,6 +131,10 @@ export function updateAccountSettings(
   if (p.parallelism != null) {
     sets.push("parallelism = ?");
     vals.push(p.parallelism);
+  }
+  if (p.noteLanguage != null) {
+    sets.push("note_language = ?");
+    vals.push(p.noteLanguage);
   }
   if (sets.length === 0) return;
   sets.push("updated_at = ?");
@@ -240,20 +250,28 @@ export function getCounts(account: string): Counts {
   const counts: Counts = {
     total: 0,
     byMedia: { image: 0, video: 0 },
+    bytesByMedia: { image: 0, video: 0 },
     byStatus: {},
     byOrigin: {},
     bytesTotal: 0,
     downloaded: 0,
+    unnotedVideos: 0,
   };
   for (const r of rows) {
     const n = num(r.n);
+    const bytes = num(r.bytes);
     counts.total += n;
     counts.byMedia[r.media_type as MediaType] += n;
+    counts.bytesByMedia[r.media_type as MediaType] += bytes;
     counts.byStatus[r.status] = (counts.byStatus[r.status] ?? 0) + n;
     counts.byOrigin[r.origin] = (counts.byOrigin[r.origin] ?? 0) + n;
-    counts.bytesTotal += num(r.bytes);
+    counts.bytesTotal += bytes;
     if (r.status === "downloaded" || r.status === "reading" || r.status === "read") {
       counts.downloaded += n;
+    }
+    // A video is "unnoted" once downloaded but not yet read (= no note written).
+    if (r.media_type === "video" && r.status === "downloaded") {
+      counts.unnotedVideos += n;
     }
   }
   return counts;
@@ -303,7 +321,7 @@ export function listAccountNames(): string[] {
     .map((f) => f.slice(0, -3));
 }
 
-/** Versionable export `manifests/<conta>.json` (replaces the root manifest.json). */
+/** Versionable export `manifests/<account>.json` (replaces the root manifest.json). */
 export function exportJson(account: string): string {
   const db = openDb(account);
   const acc = getAccount(account);

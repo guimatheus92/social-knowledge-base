@@ -53,6 +53,7 @@ export function ConnectedAccountCard({
         toast.error((e as Error).message);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- depend on the specific summary fields used, not the unstable summary object
     [cookiesPath, summary.account, summary.tabs, summary.mediaTypes, summary.parallelism],
   );
 
@@ -64,6 +65,11 @@ export function ConnectedAccountCard({
     }
   }, [summary.account]);
 
+  const onPeek = useCallback(
+    () => api.peek(summary.account, cookiesPath),
+    [summary.account, cookiesPath],
+  );
+
   return (
     <AccountCard
       summary={summary}
@@ -72,6 +78,7 @@ export function ConnectedAccountCard({
       onStop={onStop}
       onSync={() => startJob("incremental")}
       onCount={() => startJob("count")}
+      onPeek={onPeek}
       onMediaChange={onMediaChange}
     />
   );

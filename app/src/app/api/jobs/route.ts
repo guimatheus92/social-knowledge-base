@@ -18,11 +18,11 @@ export async function POST(req: Request): Promise<Response> {
   let parsed;
   try {
     parsed = Body.parse(await req.json());
-  } catch (e) {
-    return Response.json({ error: "Corpo inválido", detail: String(e) }, { status: 400 });
+  } catch {
+    return Response.json({ error: "invalid body" }, { status: 400 });
   }
   if (!existsSync(parsed.cookiesPath)) {
-    return Response.json({ error: `cookies.txt não encontrado: ${parsed.cookiesPath}` }, { status: 400 });
+    return Response.json({ error: `cookies.txt not found: ${parsed.cookiesPath}` }, { status: 400 });
   }
   const snapshot = jobManager.start(parsed);
   return Response.json(snapshot);
