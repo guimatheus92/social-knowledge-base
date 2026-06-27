@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { DeleteMediaButton } from "@/components/library/DeleteMediaButton";
 import { api } from "@/lib/api";
 import { DEFAULT_NOTE_LANG, NOTE_LANGS, noteLangNative } from "@/lib/languages";
 import { formatBytes, formatDuration } from "@/lib/format";
@@ -201,6 +202,18 @@ export function VideoDetailDialog({
                     <Copy />
                     {t("detail.copyPath")}
                   </Button>
+                )}
+                {account && postId && (
+                  <DeleteMediaButton
+                    account={account}
+                    postIds={[postId]}
+                    onDeleted={() => {
+                      qc.invalidateQueries({ queryKey: ["gallery"] });
+                      qc.invalidateQueries({ queryKey: ["items"] });
+                      qc.invalidateQueries({ queryKey: ["accounts"] });
+                      onOpenChange(false);
+                    }}
+                  />
                 )}
               </div>
 

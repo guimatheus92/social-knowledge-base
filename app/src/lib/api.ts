@@ -56,9 +56,21 @@ async function jput<T>(url: string, body: unknown): Promise<T> {
   return r.json() as Promise<T>;
 }
 
-async function jdel<T>(url: string): Promise<T> {
-  const r = await fetch(url, { method: "DELETE" });
-  if (!r.ok) throw new Error(`DELETE ${url} → ${r.status}`);
+async function jdel<T>(url: string, body?: unknown): Promise<T> {
+  const r = await fetch(url, {
+    method: "DELETE",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!r.ok) {
+    let detail = "";
+    try {
+      detail = (await r.json())?.error ?? "";
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail || `DELETE ${url} → ${r.status}`);
+  }
   return r.json() as Promise<T>;
 }
 
@@ -106,6 +118,15 @@ export const api = {
     account: string,
     body: Partial<{ media: string[]; tabs: string[]; savePath: string; parallelism: number; noteLanguage: string; category: string }>,
   ) => jpatch<AccountSummary>(`/api/accounts/${encodeURIComponent(account)}`, body),
+  deleteItems: (account: string, postIds: string[]) =>
+    jdel<{ deleted: number; freedBytes: number }>(
+      `/api/accounts/${encodeURIComponent(account)}/items`,
+      { postIds },
+    ),
+  deleteAccount: (account: string, deleteFiles: boolean) =>
+    jdel<{ ok: boolean; freedBytes: number }>(`/api/accounts/${encodeURIComponent(account)}`, {
+      deleteFiles,
+    }),
   pickDir: (current?: string) =>
     jpost<{ path: string | null; cancelled: boolean }>("/api/fs/pick-dir", { current }),
   defaultDir: () => jget<{ path: string }>("/api/fs/default-dir"),

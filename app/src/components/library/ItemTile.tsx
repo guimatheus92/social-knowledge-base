@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
-import { Film, Play } from "lucide-react";
+import { Check, Film, Play } from "lucide-react";
 import { formatBytes } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { useT } from "@/i18n/I18nProvider";
 import type { Item } from "@/lib/types";
 
@@ -16,12 +17,18 @@ export function ItemTile({
   item,
   onSelect,
   handle,
+  selectMode = false,
+  selected = false,
+  onToggleSelect,
 }: {
   account: string;
   item: Item;
   onSelect: () => void;
   /** When set (the global Gallery), shows which profile this media belongs to. */
   handle?: string;
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const t = useT();
   const [broken, setBroken] = useState(false);
@@ -29,9 +36,14 @@ export function ItemTile({
   return (
     <button
       type="button"
-      onClick={onSelect}
-      title={t("tile.openDetail")}
-      className="group relative aspect-[9/16] overflow-hidden rounded-xl bg-muted text-left ring-1 ring-border transition duration-200 hover:-translate-y-1 hover:shadow-[0_18px_40px_-20px_var(--coral)] hover:ring-2 hover:ring-coral/60"
+      onClick={selectMode ? onToggleSelect : onSelect}
+      title={selectMode ? t("delete.select") : t("tile.openDetail")}
+      className={cn(
+        "group relative aspect-[9/16] overflow-hidden rounded-xl bg-muted text-left ring-1 transition duration-200",
+        selected
+          ? "ring-2 ring-coral"
+          : "ring-border hover:-translate-y-1 hover:shadow-[0_18px_40px_-20px_var(--coral)] hover:ring-2 hover:ring-coral/60",
+      )}
     >
       {!broken ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -46,6 +58,24 @@ export function ItemTile({
         <div className="flex size-full items-center justify-center bg-gradient-to-b from-violet/25 to-coral/10 text-muted-foreground">
           <Film className="size-6" />
         </div>
+      )}
+
+      {selectMode && (
+        <span
+          className={cn(
+            "absolute inset-0 z-10 flex items-center justify-center transition",
+            selected ? "bg-coral/25" : "bg-black/30 opacity-0 group-hover:opacity-100",
+          )}
+        >
+          <span
+            className={cn(
+              "grid size-8 place-items-center rounded-full border-2 backdrop-blur-sm transition",
+              selected ? "border-coral bg-coral text-white" : "border-white/80 text-transparent",
+            )}
+          >
+            <Check className="size-5" />
+          </span>
+        </span>
       )}
 
       {/* bottom scrim so the controls stay legible over any thumbnail */}

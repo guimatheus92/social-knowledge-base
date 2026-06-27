@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBytes, formatDuration } from "@/lib/format";
+import { capitalize, formatBytes, formatDuration } from "@/lib/format";
 
 describe("formatBytes", () => {
   it("formata tamanhos", () => {
@@ -16,5 +16,17 @@ describe("formatDuration", () => {
     expect(formatDuration(0)).toBe("0:00");
     expect(formatDuration(65)).toBe("1:05");
     expect(formatDuration(3661)).toBe("1:01:01");
+  });
+});
+
+describe("capitalize", () => {
+  it("uppercases the first letter, keeps the rest as typed", () => {
+    expect(capitalize("milhas")).toBe("Milhas");
+    expect(capitalize("tech")).toBe("Tech");
+    expect(capitalize("Travel")).toBe("Travel");
+    expect(capitalize("iOS tips")).toBe("IOS tips");
+  });
+  it("leaves an empty string empty", () => {
+    expect(capitalize("")).toBe("");
   });
 });

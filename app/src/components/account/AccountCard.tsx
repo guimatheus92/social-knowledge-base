@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { StatusPill } from "@/components/account/StatusPill";
 import { CategoryBadge } from "@/components/account/CategoryBadge";
+import { DeleteAccountButton } from "@/components/account/DeleteAccountButton";
 import { AccountAvatar } from "@/components/account/AccountAvatar";
 import { NotesControl } from "@/components/account/NotesControl";
 import { MediaCountBadges } from "@/components/account/MediaCountBadges";
@@ -139,6 +140,11 @@ export function AccountCard({
             />
             <TooltipContent>{t("card.countTooltip")}</TooltipContent>
           </Tooltip>
+          <DeleteAccountButton
+            account={summary.account}
+            totalItems={summary.counts.total}
+            bytesTotal={summary.counts.bytesTotal}
+          />
         </CardAction>
       </CardHeader>
 

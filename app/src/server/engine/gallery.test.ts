@@ -36,10 +36,14 @@ function item(postId: string, over: Partial<Item> = {}): Item {
 }
 
 /** Two accounts, `a` (instagram) and `b` (tiktok), each with the given items. */
-function seed(byAccount: Record<string, Item[]>, networks: Record<string, string>) {
+function seed(
+  byAccount: Record<string, Item[]>,
+  networks: Record<string, string>,
+  categories: Record<string, string> = {},
+) {
   vi.mocked(repo.listAccountNames).mockReturnValue(Object.keys(byAccount));
   vi.mocked(repo.getAccount).mockImplementation(
-    (n: string) => ({ network: networks[n] }) as any,
+    (n: string) => ({ network: networks[n], category: categories[n] ?? null }) as any,
   );
   vi.mocked(repo.listItems).mockImplementation((n: string) => byAccount[n] ?? []);
 }
@@ -63,6 +67,18 @@ describe("listGallery", () => {
     const { items, total } = listGallery({ network: "instagram" });
     expect(total).toBe(1);
     expect(items[0].account).toBe("a");
+  });
+
+  it("filters by category and tags each item with it", () => {
+    seed(
+      { a: [item("1")], b: [item("2")] },
+      { a: "instagram", b: "instagram" },
+      { a: "Travel", b: "Tech" },
+    );
+    const { items, total } = listGallery({ category: "Travel" });
+    expect(total).toBe(1);
+    expect(items[0].account).toBe("a");
+    expect(items[0].category).toBe("Travel");
   });
 
   it("restricts to a single profile", () => {

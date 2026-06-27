@@ -1,10 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckSquare, X } from "lucide-react";
 import { SearchFilterBar } from "@/components/library/SearchFilterBar";
 import { LibraryGrid } from "@/components/library/LibraryGrid";
 import { VideoDetailDialog } from "@/components/library/VideoDetailDialog";
+import { DeleteMediaButton } from "@/components/library/DeleteMediaButton";
+import { Button } from "@/components/ui/button";
 import { useStats } from "@/hooks/useAccounts";
 import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -13,8 +16,24 @@ import type { Item } from "@/lib/types";
 
 export function LibraryView({ account }: { account: string }) {
   const { t, locale } = useI18n();
+  const qc = useQueryClient();
   const [filters, setFilters] = useState<ItemFilters>({ sort: "date" });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function exitSelect() {
+    setSelectMode(false);
+    setSelected(new Set());
+  }
 
   // Reflect the open video in the URL (?v=<id>) — shareable + survives a reload.
   useEffect(() => {
@@ -59,7 +78,45 @@ export function LibraryView({ account }: { account: string }) {
       </header>
 
       <SearchFilterBar value={filters} onChange={setFilters} />
-      <LibraryGrid account={account} filters={filters} onSelect={openVideo} />
+
+      {selectMode ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-white/[0.03] px-3 py-2 text-sm">
+          <span className="text-muted-foreground">{t("delete.selectedCount", { n: selected.size })}</span>
+          <div className="ml-auto flex items-center gap-2">
+            <DeleteMediaButton
+              account={account}
+              postIds={[...selected]}
+              variant="destructive"
+              onDeleted={() => {
+                exitSelect();
+                qc.invalidateQueries({ queryKey: ["items"] });
+                qc.invalidateQueries({ queryKey: ["accounts"] });
+                qc.invalidateQueries({ queryKey: ["gallery"] });
+              }}
+            />
+            <Button variant="ghost" size="sm" onClick={exitSelect}>
+              <X />
+              {t("delete.selectDone")}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => setSelectMode(true)}>
+            <CheckSquare />
+            {t("delete.select")}
+          </Button>
+        </div>
+      )}
+
+      <LibraryGrid
+        account={account}
+        filters={filters}
+        onSelect={openVideo}
+        selectMode={selectMode}
+        selected={selected}
+        onToggleSelect={toggleSelect}
+      />
 
       <VideoDetailDialog
         account={account}

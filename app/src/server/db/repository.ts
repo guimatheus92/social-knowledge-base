@@ -238,6 +238,13 @@ export function getItem(account: string, postId: string): Item | null {
   return r ? rowToItem(r) : null;
 }
 
+/** Remove item rows by post id (their files are deleted by the deletion engine). */
+export function deleteItemRows(account: string, postIds: string[]): void {
+  if (!postIds.length) return;
+  const stmt = openDb(account).prepare("DELETE FROM item WHERE post_id = ?");
+  for (const id of postIds) stmt.run(id);
+}
+
 export function markRead(
   account: string,
   postId: string,
