@@ -36,6 +36,7 @@ export function NetworkBulkBar({
     if (bulk && (bulk.status === "done" || bulk.status === "stopped" || bulk.status === "error")) {
       qc.invalidateQueries({ queryKey: ["accounts"] });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when bulk.status changes, not on every bulk field
   }, [bulk?.status, qc]);
 
   const unnotedVideos = accounts.reduce((n, a) => n + a.counts.unnotedVideos, 0);

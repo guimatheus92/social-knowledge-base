@@ -165,7 +165,6 @@ def main() -> None:
             silent += 1
             continue
         try:
-            t = time.time()
             segments, info = model.transcribe(
                 str(video), language=lang, initial_prompt=GLOSSARY, beam_size=args.beam,
             )

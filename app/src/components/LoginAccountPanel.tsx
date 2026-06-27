@@ -51,6 +51,7 @@ export function LoginAccountPanel({
   const t = useT();
   const [open, setOpen] = useState(!cookiesPath);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- open the panel when the cookie status flips to expired
     if (status === "expired") setOpen(true);
   }, [status]);
 

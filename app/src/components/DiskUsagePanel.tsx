@@ -1,5 +1,5 @@
 "use client";
-import { HardDrive, Image, Video } from "lucide-react";
+import { HardDrive, Image as ImageIcon, Video } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,7 +47,7 @@ export function DiskUsagePanel({ accounts }: { accounts: AccountSummary[] }) {
             {t("media.videosLabel").toLowerCase()}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <Image className="size-3.5 text-violet" aria-hidden />
+            <ImageIcon className="size-3.5 text-violet" aria-hidden />
             <b className="font-mono font-medium text-foreground">{formatBytes(imageBytes)}</b>{" "}
             {t("media.imagesLabel").toLowerCase()}
           </span>

@@ -36,6 +36,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const saved = localStorage.getItem(COOKIES_KEY);
     if (saved) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration from localStorage (client-only, after mount)
       setCookiesPath(saved);
       return;
     }
@@ -59,6 +60,7 @@ export default function DashboardPage() {
   // Real cookie health: check the sessionid's own expiry (no network call).
   useEffect(() => {
     if (!cookiesPath) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset the derived status when the cookies path clears
       setCookieStatus("unknown");
       return;
     }

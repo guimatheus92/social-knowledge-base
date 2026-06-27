@@ -25,6 +25,7 @@ export function GalleryView() {
     const sp = new URLSearchParams(window.location.search);
     const a = sp.get("a");
     const v = sp.get("v");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- restore the open video from the URL on mount (client-only)
     if (a && v) setSelected({ account: a, postId: v });
   }, []);
 

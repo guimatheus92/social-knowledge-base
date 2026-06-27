@@ -60,6 +60,19 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  python:
+    name: Python (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ruff
+        run: pip install "ruff==0.15.20"
+      - name: Ruff check (scripts/)
+        run: ruff check scripts/
+
   docker:
     name: Docker image builds
     runs-on: ubuntu-latest

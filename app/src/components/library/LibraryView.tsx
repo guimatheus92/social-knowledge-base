@@ -19,6 +19,7 @@ export function LibraryView({ account }: { account: string }) {
   // Reflect the open video in the URL (?v=<id>) — shareable + survives a reload.
   useEffect(() => {
     const v = new URLSearchParams(window.location.search).get("v");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- restore the open video from the URL on mount (client-only)
     if (v) setSelectedId(v);
   }, []);
 

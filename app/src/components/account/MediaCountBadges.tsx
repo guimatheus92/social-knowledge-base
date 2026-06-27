@@ -1,5 +1,5 @@
 "use client";
-import { Image, Video } from "lucide-react";
+import { Image as ImageIcon, Video } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatNumber } from "@/lib/format";
 import type { Counts } from "@/lib/types";
@@ -26,7 +26,7 @@ export function MediaCountBadges({ counts }: { counts: Counts }) {
             <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums" />
           }
         >
-          <Image className="size-3.5" />
+          <ImageIcon className="size-3.5" />
           {formatNumber(counts.byMedia.image, locale)}
         </TooltipTrigger>
         <TooltipContent>{t("badges.imagesInLibrary")}</TooltipContent>

@@ -53,6 +53,7 @@ export function ConnectedAccountCard({
         toast.error((e as Error).message);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- depend on the specific summary fields used, not the unstable summary object
     [cookiesPath, summary.account, summary.tabs, summary.mediaTypes, summary.parallelism],
   );
 

@@ -38,6 +38,7 @@ export function AnalysisSettingsPanel() {
   const [cfg, setCfg] = useState<AnalysisConfig | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- copy fetched server config into editable local state
     if (data) setCfg(data);
   }, [data]);
 

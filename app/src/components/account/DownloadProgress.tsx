@@ -13,6 +13,7 @@ export function DownloadProgress({ job }: { job: JobSnapshot | null }) {
   // time below is derived from state (not an impure Date.now() in render).
   const [now, setNow] = useState(0);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- seed the clock immediately so elapsed shows on the first running frame
     setNow(Date.now());
     if (!running) return;
     const id = setInterval(() => setNow(Date.now()), 1000);

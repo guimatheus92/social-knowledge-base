@@ -30,11 +30,14 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as Locale | null;
-    if (saved && LOCALES.includes(saved)) {
-      setLocaleState(saved);
-    } else if (typeof navigator !== "undefined" && navigator.language?.toLowerCase().startsWith("en")) {
-      setLocaleState("en");
-    }
+    const next =
+      saved && LOCALES.includes(saved)
+        ? saved
+        : typeof navigator !== "undefined" && navigator.language?.toLowerCase().startsWith("en")
+          ? "en"
+          : null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration of the persisted/preferred locale (client-only)
+    if (next) setLocaleState(next);
   }, []);
 
   const value = useMemo<I18nContextValue>(() => {

@@ -61,6 +61,7 @@ export function NotesControl({
     if (job && (job.status === "done" || job.status === "stopped" || job.status === "error")) {
       qc.invalidateQueries({ queryKey: ["accounts"] });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when job.status changes, not on every job field
   }, [job?.status, qc]);
 
   const start = useMutation({
