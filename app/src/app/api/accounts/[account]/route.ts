@@ -2,6 +2,7 @@ import { z } from "zod";
 import * as repo from "@/server/db/repository";
 import { jobManager } from "@/server/engine/jobManager";
 import { NOTE_LANG_CODES } from "@/lib/languages";
+import { capitalize } from "@/lib/format";
 import type { MediaType, Tab } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -28,6 +29,7 @@ const Patch = z.object({
   savePath: z.string().optional(),
   parallelism: z.number().int().min(1).max(4).optional(),
   noteLanguage: z.string().refine((v) => NOTE_LANG_CODES.includes(v), "unsupported note language").optional(),
+  category: z.string().max(40).optional(),
 });
 
 export async function PATCH(
@@ -47,6 +49,7 @@ export async function PATCH(
     savePath: body.savePath,
     parallelism: body.parallelism,
     noteLanguage: body.noteLanguage,
+    category: body.category === undefined ? undefined : capitalize(body.category.trim()),
   });
   const s = summary(account);
   return s ? Response.json(s) : Response.json({ error: "account not found" }, { status: 404 });

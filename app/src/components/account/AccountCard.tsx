@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { StatusPill } from "@/components/account/StatusPill";
+import { CategoryBadge } from "@/components/account/CategoryBadge";
 import { AccountAvatar } from "@/components/account/AccountAvatar";
 import { NotesControl } from "@/components/account/NotesControl";
 import { MediaCountBadges } from "@/components/account/MediaCountBadges";
@@ -85,9 +86,12 @@ export function AccountCard({
               <span className="truncate font-heading">@{summary.account}</span>
               <StatusPill status={status} rateLimited={snapshot?.rateLimited} />
             </div>
-            <span className="text-xs font-normal text-muted-foreground">
-              {networkMeta(summary.network).label}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-normal text-muted-foreground">
+                {networkMeta(summary.network).label}
+              </span>
+              <CategoryBadge account={summary.account} category={summary.category} />
+            </div>
           </div>
         </CardTitle>
         <CardAction className="flex items-center gap-1.5">

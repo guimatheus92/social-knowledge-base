@@ -18,6 +18,7 @@ export async function GET(req: Request): Promise<Response> {
         q: sp.get("q") || undefined,
         profile: sp.get("profile") || undefined,
         network: sp.get("network") || undefined,
+        category: sp.get("category") || undefined,
         media: media === "image" || media === "video" ? media : undefined,
         origin: origin && ORIGINS.includes(origin) ? (origin as Origin) : undefined,
         sort: sort === "size" || sort === "duration" ? sort : "date",

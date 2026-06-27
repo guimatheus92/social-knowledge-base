@@ -81,6 +81,7 @@ export default function DashboardPage() {
     media: MediaType[];
     tabs: Tab[];
     network: string;
+    category: string;
   }) => {
     try {
       await api.addAccount({
@@ -89,6 +90,7 @@ export default function DashboardPage() {
         media: data.media,
         tabs: data.tabs,
         network: data.network,
+        category: data.category,
         cookiesPath: cookiesPath || undefined,
       });
       toast.success(t("toast.accountAdded", { account: data.account }));

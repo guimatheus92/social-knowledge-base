@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import * as repo from "@/server/db/repository";
 import { DOWNLOADS } from "@/server/paths";
+import { capitalize } from "@/lib/format";
 import { jobManager } from "@/server/engine/jobManager";
 
 export const runtime = "nodejs";
@@ -26,6 +27,7 @@ const NewAccount = z.object({
   media: z.array(z.enum(["image", "video"])).min(1).optional(),
   tabs: z.array(z.enum(["highlights", "reels", "stories", "posts"])).optional(),
   network: z.string().optional(),
+  category: z.string().max(40).optional(),
 });
 
 export async function POST(req: Request): Promise<Response> {
@@ -42,6 +44,7 @@ export async function POST(req: Request): Promise<Response> {
     mediaTypes: body.media,
     tabs: body.tabs,
     network: body.network,
+    category: capitalize((body.category ?? "").trim()) || undefined,
   });
   return Response.json({
     ...repo.getAccount(body.account),

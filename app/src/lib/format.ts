@@ -14,6 +14,11 @@ export function formatBytes(bytes: number | null | undefined): string {
   return `${v.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
+/** Capitalize the first letter (keeps the rest as typed). Empty string stays empty. */
+export function capitalize(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
 /** h:mm:ss or m:ss */
 export function formatDuration(seconds: number | null | undefined): string {
   const s = Math.max(0, Math.floor(seconds ?? 0));

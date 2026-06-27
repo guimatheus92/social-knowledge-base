@@ -16,6 +16,7 @@ export function listGallery(opts: GalleryOpts): { items: GalleryItem[]; total: n
     const acc = getAccount(account);
     if (!acc) continue;
     if (opts.network && acc.network !== opts.network) continue;
+    if (opts.category && (acc.category ?? "") !== opts.category) continue;
     const items = listItems(account, {
       q: opts.q,
       media: opts.media,
@@ -24,7 +25,7 @@ export function listGallery(opts: GalleryOpts): { items: GalleryItem[]; total: n
     });
     for (const it of items) {
       if (!it.relPath) continue; // only media actually on disk
-      all.push({ ...it, account, network: acc.network });
+      all.push({ ...it, account, network: acc.network, category: acc.category ?? null });
     }
   }
 

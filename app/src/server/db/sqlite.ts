@@ -25,6 +25,7 @@ export function openDb(account: string): DatabaseSync {
     "estimated_total INTEGER",
     "network TEXT NOT NULL DEFAULT 'instagram'",
     "note_language TEXT",
+    "category TEXT",
   ]) {
     try {
       db.exec(`ALTER TABLE account ADD COLUMN ${col}`);

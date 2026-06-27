@@ -52,6 +52,7 @@ function rowToAccount(r: any): Account {
     parallelism: num(r.parallelism),
     network: r.network ?? "instagram",
     noteLanguage: r.note_language ?? null,
+    category: r.category ?? null,
     elapsedSeconds: num(r.elapsed_seconds),
     lastSyncedAt: r.last_synced_at ?? null,
     estimatedTotal: r.estimated_total == null ? null : num(r.estimated_total),
@@ -81,6 +82,8 @@ export interface AccountInput {
   parallelism?: number;
   /** Source network provider id; set once at creation, defaults to instagram. */
   network?: string;
+  /** User-chosen topic (Travel, Tech, Milhas…). */
+  category?: string | null;
 }
 
 export function upsertAccount(a: AccountInput): void {
@@ -88,14 +91,15 @@ export function upsertAccount(a: AccountInput): void {
   const now = new Date().toISOString();
   // `network` is identity: set once at creation, never overwritten on conflict.
   db.prepare(
-    `INSERT INTO account (account, save_path, cookies_path, media_types, tabs, parallelism, network, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?)
+    `INSERT INTO account (account, save_path, cookies_path, media_types, tabs, parallelism, network, category, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(account) DO UPDATE SET
        save_path=excluded.save_path,
        cookies_path=COALESCE(excluded.cookies_path, account.cookies_path),
        media_types=excluded.media_types,
        tabs=excluded.tabs,
        parallelism=excluded.parallelism,
+       category=COALESCE(excluded.category, account.category),
        updated_at=excluded.updated_at`,
   ).run(
     a.account,
@@ -105,6 +109,7 @@ export function upsertAccount(a: AccountInput): void {
     (a.tabs ?? ["highlights", "reels", "stories"]).join(","),
     a.parallelism ?? 2,
     a.network ?? "instagram",
+    a.category ?? null,
     now,
     now,
   );
@@ -112,7 +117,7 @@ export function upsertAccount(a: AccountInput): void {
 
 export function updateAccountSettings(
   account: string,
-  p: { mediaTypes?: MediaType[]; tabs?: Tab[]; savePath?: string; parallelism?: number; noteLanguage?: string },
+  p: { mediaTypes?: MediaType[]; tabs?: Tab[]; savePath?: string; parallelism?: number; noteLanguage?: string; category?: string },
 ): void {
   const sets: string[] = [];
   const vals: (string | number)[] = [];
@@ -135,6 +140,10 @@ export function updateAccountSettings(
   if (p.noteLanguage != null) {
     sets.push("note_language = ?");
     vals.push(p.noteLanguage);
+  }
+  if (p.category != null) {
+    sets.push("category = ?");
+    vals.push(p.category);
   }
   if (sets.length === 0) return;
   sets.push("updated_at = ?");

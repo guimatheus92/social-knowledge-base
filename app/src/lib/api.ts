@@ -79,6 +79,7 @@ export interface NewAccountBody {
   media?: string[];
   tabs?: string[];
   network?: string;
+  category?: string;
 }
 
 export const api = {
@@ -103,7 +104,7 @@ export const api = {
     ),
   patchAccount: (
     account: string,
-    body: Partial<{ media: string[]; tabs: string[]; savePath: string; parallelism: number; noteLanguage: string }>,
+    body: Partial<{ media: string[]; tabs: string[]; savePath: string; parallelism: number; noteLanguage: string; category: string }>,
   ) => jpatch<AccountSummary>(`/api/accounts/${encodeURIComponent(account)}`, body),
   pickDir: (current?: string) =>
     jpost<{ path: string | null; cancelled: boolean }>("/api/fs/pick-dir", { current }),
