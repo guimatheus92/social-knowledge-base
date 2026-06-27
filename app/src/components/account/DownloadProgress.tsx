@@ -9,10 +9,13 @@ export function DownloadProgress({ job }: { job: JobSnapshot | null }) {
   const { t, locale } = useI18n();
   const running = job?.status === "running";
 
-  const [, setTick] = useState(0);
+  // Tick a wall-clock timestamp once a second while running, so the elapsed
+  // time below is derived from state (not an impure Date.now() in render).
+  const [now, setNow] = useState(0);
   useEffect(() => {
+    setNow(Date.now());
     if (!running) return;
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [running]);
 
@@ -23,7 +26,7 @@ export function DownloadProgress({ job }: { job: JobSnapshot | null }) {
       ? Math.min(100, (job.downloaded / job.discovered) * 100)
       : 0;
 
-  const elapsed = job.startedAt ? (Date.now() - job.startedAt) / 1000 : 0;
+  const elapsed = job.startedAt && now ? (now - job.startedAt) / 1000 : 0;
   const ratePerSec = job.downloaded / Math.max(1, elapsed);
   const remaining = Math.max(0, job.discovered - job.downloaded);
   const showRate = running && elapsed > 0;

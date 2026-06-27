@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -94,8 +94,14 @@ export function VideoDetailDialog({
   });
 
   // Per-video language override; defaults to the account/global resolved language.
+  // Reset it when the dialog switches videos — adjust-state-during-render, the
+  // React-recommended alternative to a reset effect.
   const [langOverride, setLangOverride] = useState<string | null>(null);
-  useEffect(() => setLangOverride(null), [postId]);
+  const [prevPostId, setPrevPostId] = useState(postId);
+  if (postId !== prevPostId) {
+    setPrevPostId(postId);
+    setLangOverride(null);
+  }
   const lang = langOverride ?? data?.noteLanguage ?? DEFAULT_NOTE_LANG;
 
   const gen = useMutation({
