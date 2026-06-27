@@ -7,7 +7,7 @@ import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { DatabaseSync } from "node:sqlite";
 import { existsSync, readdirSync, statSync } from "node:fs";
-import { basename, extname, join, relative, sep } from "node:path";
+import { basename, extname, join, posix, relative, sep } from "node:path";
 import { ROOT } from "@/server/paths";
 import { buildEnv } from "@/server/engine/ffmpeg";
 import { mediaFilterArgs, mediaTypeForFile } from "@/server/engine/mediaType";
@@ -223,6 +223,17 @@ export function peekNew(o: {
 const RE_RATE_LIMIT = /401|please wait a few minutes/i;
 const RE_LOGIN_REDIRECT = /accounts\/login|redirect to login/i;
 
+/**
+ * Post id = filename without extension. gallery-dl prints `\` paths on Windows
+ * and `/` on Linux/Docker, so normalize both separators and parse with the
+ * posix rules — keeps stdout parsing identical on every platform (the test
+ * runner and the container are Linux; the user's machine is Windows).
+ */
+function postIdFromPath(p: string): string {
+  const norm = p.replace(/\\/g, "/");
+  return posix.basename(norm, posix.extname(norm));
+}
+
 /** Is a stdout line a media path from this tab? (downloaded or `# ` skip) */
 export function parseMediaLine(
   line: string,
@@ -238,9 +249,8 @@ export function parseMediaLine(
   const mediaType = mediaTypeForFile(p);
   if (!mediaType) return null;
   // confirm it belongs to the tab's folder (avoids false positives in logs)
-  const tabDir = `${sep}${tab}${sep}`;
-  if (!p.includes(tabDir) && !p.includes(`/${tab}/`)) return null;
-  const postId = basename(p, extname(p));
+  if (!p.replace(/\\/g, "/").includes(`/${tab}/`)) return null;
+  const postId = postIdFromPath(p);
   if (postId.includes(".")) return null; // yt-dlp fragment (<id>.f...) — not real media
   return { postId, mediaType, path: p, skipped };
 }
@@ -278,7 +288,7 @@ export function runTab(o: TabRunOptions): Promise<TabRunResult> {
         if (p.startsWith("# ")) p = p.slice(2).trim();
         const mt = mediaTypeForFile(p);
         if (!mt) return;
-        const pid = basename(p, extname(p));
+        const pid = postIdFromPath(p);
         if (pid.includes(".")) return; // yt-dlp fragment
         result.skipped += 1;
         o.emit({ t: "file_done", tab: o.tab, postId: pid, mediaType: mt, bytes: 0, elapsedMs: 0, skipped: true });
