@@ -31,17 +31,19 @@ export async function DELETE(
 ): Promise<Response> {
   const { account } = await params;
   let postIds: string[] = [];
+  let keepNotes = false;
   try {
     const body = await req.json();
     if (Array.isArray(body?.postIds)) {
       postIds = body.postIds.filter((x: unknown): x is string => typeof x === "string");
     }
+    keepNotes = body?.keepNotes === true; // "free space": drop media, keep the note
   } catch {
     /* invalid/empty body → no ids */
   }
   if (!postIds.length) return Response.json({ error: "no postIds" }, { status: 400 });
   try {
-    return Response.json(deleteMediaItems(account, postIds));
+    return Response.json(deleteMediaItems(account, postIds, { keepNotes }));
   } catch (e) {
     return Response.json({ error: (e as Error).message || "delete failed" }, { status: 400 });
   }

@@ -105,6 +105,10 @@ export const api = {
     ),
   items: (account: string, qs: string) =>
     jget<{ items: Item[] }>(`/api/accounts/${encodeURIComponent(account)}/items?${qs}`),
+  itemIds: (account: string, qs: string) =>
+    jget<{ ids: string[] }>(
+      `/api/accounts/${encodeURIComponent(account)}/items/ids${qs ? `?${qs}` : ""}`,
+    ),
   gallery: (qs: string) => jget<{ items: GalleryItem[]; total: number }>(`/api/gallery?${qs}`),
   warmThumbnails: () => jpost<{ ok: boolean }>("/api/thumbnails/warm"),
   startJob: (body: StartJobBody) => jpost<JobSnapshot>("/api/jobs", body),
@@ -120,8 +124,11 @@ export const api = {
     account: string,
     body: Partial<{ media: string[]; tabs: string[]; savePath: string; parallelism: number; noteLanguage: string; category: string }>,
   ) => jpatch<AccountSummary>(`/api/accounts/${encodeURIComponent(account)}`, body),
-  deleteItems: (account: string, postIds: string[]) =>
-    jdel<DeleteMediaResult>(`/api/accounts/${encodeURIComponent(account)}/items`, { postIds }),
+  deleteItems: (account: string, postIds: string[], keepNotes = false) =>
+    jdel<DeleteMediaResult>(`/api/accounts/${encodeURIComponent(account)}/items`, {
+      postIds,
+      keepNotes,
+    }),
   deleteAccount: (account: string, deleteFiles: boolean) =>
     jdel<DeleteAccountResult & { ok: boolean }>(`/api/accounts/${encodeURIComponent(account)}`, {
       deleteFiles,

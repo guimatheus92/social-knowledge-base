@@ -338,6 +338,34 @@ export function listItems(account: string, opts: ListOpts = {}): Item[] {
   return (openDb(account).prepare(sql).all(...params) as any[]).map(rowToItem);
 }
 
+/**
+ * Every post_id matching a filter, ignoring pagination — backs the gallery's
+ * "select all" (which must reach items beyond the loaded pages). Returns just
+ * ids (cheap even for thousands of rows), reusing listItems' filter clauses.
+ */
+export function listItemIds(account: string, opts: ListOpts = {}): string[] {
+  const where: string[] = [];
+  const params: any[] = [];
+  if (opts.status) {
+    where.push("status = ?");
+    params.push(opts.status);
+  }
+  if (opts.media) {
+    where.push("media_type = ?");
+    params.push(opts.media);
+  }
+  if (opts.origin) {
+    where.push("origin = ?");
+    params.push(opts.origin);
+  }
+  if (opts.q) {
+    where.push("(caption LIKE ? OR post_id LIKE ?)");
+    params.push(`%${opts.q}%`, `%${opts.q}%`);
+  }
+  const sql = `SELECT post_id FROM item ${where.length ? "WHERE " + where.join(" AND ") : ""}`;
+  return (openDb(account).prepare(sql).all(...params) as { post_id: string }[]).map((r) => r.post_id);
+}
+
 /** Names of existing accounts (scans manifests/*.db). */
 export function listAccountNames(): string[] {
   if (!existsSync(MANIFESTS)) return [];

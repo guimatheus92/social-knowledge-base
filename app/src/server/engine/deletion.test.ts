@@ -58,6 +58,18 @@ describe("deleteMediaItems", () => {
     expect(paths.some((p) => p.includes("notes/acc/videos/1.md"))).toBe(true);
   });
 
+  it("with keepNotes, removes the media but leaves the note (still drops the row)", () => {
+    vi.mocked(repo.getItem).mockReturnValue({ relPath: "downloads/acc/reels/1.mp4" } as any);
+    const r = deleteMediaItems("acc", ["1"], { keepNotes: true });
+    expect(r).toEqual({ deleted: 1, freedBytes: 100 });
+    const paths = removed();
+    expect(paths).toContain("/root/downloads/acc/reels/1.mp4"); // media still deleted
+    expect(paths.some((p) => p.includes(".thumbs/1.jpg"))).toBe(true);
+    expect(paths.some((p) => p.includes("notes/acc/videos/1.md"))).toBe(false); // note preserved
+    expect(paths.some((p) => p.includes("notes/acc/videos/1.meta.json"))).toBe(false);
+    expect(repo.deleteItemRows).toHaveBeenCalledWith("acc", ["1"]); // row still dropped
+  });
+
   it("skips ids not in the manifest but still issues the row delete", () => {
     vi.mocked(repo.getItem).mockReturnValue(null);
     const r = deleteMediaItems("acc", ["x"]);

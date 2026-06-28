@@ -35,8 +35,17 @@ function safeSize(p: string): number {
   }
 }
 
-/** Delete media items: their files (video + sidecars + thumb + note) and DB rows. */
-export function deleteMediaItems(account: string, postIds: string[]): DeleteMediaResult {
+/**
+ * Delete media items: their files (video + sidecars + thumb + note) and DB rows.
+ * With `keepNotes`, the curated note (`.md` + `.meta.json`) is left on disk so
+ * the knowledge survives (still indexed by RAG) while the media frees up space —
+ * the manifest row still goes, so the item leaves the gallery either way.
+ */
+export function deleteMediaItems(
+  account: string,
+  postIds: string[],
+  opts: { keepNotes?: boolean } = {},
+): DeleteMediaResult {
   const acc = getAccount(account);
   const saveDir = acc?.savePath ?? join(ROOT, "downloads", account);
   let freedBytes = 0;
@@ -56,8 +65,10 @@ export function deleteMediaItems(account: string, postIds: string[]): DeleteMedi
     tryRm(join(saveDir, "transcripts", `${postId}.txt`));
     tryRm(join(saveDir, "transcripts", `${postId}.json`));
     tryRm(thumbPathFor(saveDir, postId));
-    tryRm(join(ROOT, "notes", account, "videos", `${postId}.md`));
-    tryRm(join(ROOT, "notes", account, "videos", `${postId}.meta.json`));
+    if (!opts.keepNotes) {
+      tryRm(join(ROOT, "notes", account, "videos", `${postId}.md`));
+      tryRm(join(ROOT, "notes", account, "videos", `${postId}.meta.json`));
+    }
     deleted += 1;
   }
   deleteItemRows(account, postIds);
