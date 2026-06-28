@@ -36,10 +36,12 @@ function safeSize(p: string): number {
 }
 
 /**
- * Delete media items: their files (video + sidecars + thumb + note) and DB rows.
- * With `keepNotes`, the curated note (`.md` + `.meta.json`) is left on disk so
- * the knowledge survives (still indexed by RAG) while the media frees up space —
- * the manifest row still goes, so the item leaves the gallery either way.
+ * Delete media items: the heavy media (video + poster thumb) and the DB row.
+ * Without `keepNotes` it also removes the transcript sidecars (.vtt/.txt/.json)
+ * and the curated note (.md/.meta.json). With `keepNotes` those are kept on
+ * disk — the video frees up space while the note + transcript stay available
+ * for RAG re-indexing — but the manifest row still goes, so the item leaves the
+ * gallery either way.
  */
 export function deleteMediaItems(
   account: string,
@@ -54,18 +56,21 @@ export function deleteMediaItems(
     assertSafeSegment(postId); // never interpolate a crafted id into an rmSync path
     const it = getItem(account, postId);
     if (!it) continue;
-    if (it.relPath) {
-      const abs = isAbsolute(it.relPath) ? it.relPath : join(ROOT, it.relPath);
+    let abs: string | null = null;
+    if (it.relPath) abs = isAbsolute(it.relPath) ? it.relPath : join(ROOT, it.relPath);
+    if (abs) {
       const size = existsSync(abs) ? safeSize(abs) : 0;
       // Only count the primary media file as freed if it was actually removed.
       if (tryRm(abs)) freedBytes += size;
       else console.warn(`[deletion] could not remove ${abs}; the manifest row is dropped anyway`);
-      tryRm(join(dirname(abs), `${basename(abs, extname(abs))}.vtt`)); // .vtt sidecar next to the video
     }
-    tryRm(join(saveDir, "transcripts", `${postId}.txt`));
-    tryRm(join(saveDir, "transcripts", `${postId}.json`));
-    tryRm(thumbPathFor(saveDir, postId));
+    tryRm(thumbPathFor(saveDir, postId)); // derived poster — orphaned once the row goes
+    // "Free space" (keepNotes) keeps the note and its transcript sidecars so the
+    // item stays searchable by RAG; only the heavy media above is removed.
     if (!opts.keepNotes) {
+      if (abs) tryRm(join(dirname(abs), `${basename(abs, extname(abs))}.vtt`)); // .vtt next to the video
+      tryRm(join(saveDir, "transcripts", `${postId}.txt`));
+      tryRm(join(saveDir, "transcripts", `${postId}.json`));
       tryRm(join(ROOT, "notes", account, "videos", `${postId}.md`));
       tryRm(join(ROOT, "notes", account, "videos", `${postId}.meta.json`));
     }

@@ -73,7 +73,8 @@ export function LibraryView({ account }: { account: string }) {
       const { ids } = await api.itemIds(account, sp.toString());
       setSelected(new Set(ids));
     } catch (e) {
-      toast.error((e as Error).message);
+      console.error("[selectAll] failed", e);
+      toast.error(t("delete.selectAllFailed"));
     } finally {
       setSelectingAll(false);
     }
@@ -123,13 +124,17 @@ export function LibraryView({ account }: { account: string }) {
             </Button>
           )}
           <div className="ml-auto flex items-center gap-2">
-            <DeleteMediaButton account={account} postIds={[...selected]} keepNotes onDeleted={afterMutate} />
-            <DeleteMediaButton
-              account={account}
-              postIds={[...selected]}
-              variant="destructive"
-              onDeleted={afterMutate}
-            />
+            {selected.size > 0 && (
+              <>
+                <DeleteMediaButton account={account} postIds={[...selected]} keepNotes onDeleted={afterMutate} />
+                <DeleteMediaButton
+                  account={account}
+                  postIds={[...selected]}
+                  variant="destructive"
+                  onDeleted={afterMutate}
+                />
+              </>
+            )}
             <Button variant="ghost" size="sm" onClick={exitSelect}>
               <X />
               {t("delete.selectDone")}

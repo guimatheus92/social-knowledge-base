@@ -302,19 +302,24 @@ export function getCounts(account: string): Counts {
   return counts;
 }
 
-export interface ListOpts {
+/** Predicate-only filters (membership, not order/page) shared by the listers below. */
+export interface ItemFilter {
   status?: ItemStatus;
   media?: MediaType;
   origin?: Origin;
   q?: string;
+}
+
+export interface ListOpts extends ItemFilter {
   sort?: "date" | "size";
   limit?: number;
   offset?: number;
 }
 
-export function listItems(account: string, opts: ListOpts = {}): Item[] {
+/** The shared WHERE clause + bound params for a filter (no ordering/pagination). */
+function buildItemWhere(opts: ItemFilter): { clause: string; params: (string | number)[] } {
   const where: string[] = [];
-  const params: any[] = [];
+  const params: (string | number)[] = [];
   if (opts.status) {
     where.push("status = ?");
     params.push(opts.status);
@@ -331,38 +336,31 @@ export function listItems(account: string, opts: ListOpts = {}): Item[] {
     where.push("(caption LIKE ? OR post_id LIKE ?)");
     params.push(`%${opts.q}%`, `%${opts.q}%`);
   }
+  return { clause: where.length ? "WHERE " + where.join(" AND ") : "", params };
+}
+
+export function listItems(account: string, opts: ListOpts = {}): Item[] {
+  const { clause, params } = buildItemWhere(opts);
   // posted_at is not captured yet; IG IDs are chronological → order by id.
   const order = opts.sort === "size" ? "file_size DESC" : "CAST(post_id AS INTEGER) DESC";
-  const sql = `SELECT * FROM item ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY ${order} NULLS LAST LIMIT ? OFFSET ?`;
-  params.push(opts.limit ?? 100, opts.offset ?? 0);
-  return (openDb(account).prepare(sql).all(...params) as any[]).map(rowToItem);
+  const sql = `SELECT * FROM item ${clause} ORDER BY ${order} NULLS LAST LIMIT ? OFFSET ?`;
+  return (
+    openDb(account)
+      .prepare(sql)
+      .all(...params, opts.limit ?? 100, opts.offset ?? 0) as any[]
+  ).map(rowToItem);
 }
 
 /**
  * Every post_id matching a filter, ignoring pagination — backs the gallery's
  * "select all" (which must reach items beyond the loaded pages). Returns just
- * ids (cheap even for thousands of rows), reusing listItems' filter clauses.
+ * ids (cheap even for thousands of rows) and shares listItems' WHERE logic via
+ * buildItemWhere, so the two can't drift. Takes ItemFilter, not ListOpts: sort
+ * and pagination are meaningless for a full id set.
  */
-export function listItemIds(account: string, opts: ListOpts = {}): string[] {
-  const where: string[] = [];
-  const params: any[] = [];
-  if (opts.status) {
-    where.push("status = ?");
-    params.push(opts.status);
-  }
-  if (opts.media) {
-    where.push("media_type = ?");
-    params.push(opts.media);
-  }
-  if (opts.origin) {
-    where.push("origin = ?");
-    params.push(opts.origin);
-  }
-  if (opts.q) {
-    where.push("(caption LIKE ? OR post_id LIKE ?)");
-    params.push(`%${opts.q}%`, `%${opts.q}%`);
-  }
-  const sql = `SELECT post_id FROM item ${where.length ? "WHERE " + where.join(" AND ") : ""}`;
+export function listItemIds(account: string, opts: ItemFilter = {}): string[] {
+  const { clause, params } = buildItemWhere(opts);
+  const sql = `SELECT post_id FROM item ${clause}`;
   return (openDb(account).prepare(sql).all(...params) as { post_id: string }[]).map((r) => r.post_id);
 }
 

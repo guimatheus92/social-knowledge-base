@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import { formatBytes } from "@/lib/format";
 import { useT } from "@/i18n/I18nProvider";
 
 /**
@@ -51,8 +52,15 @@ export function DeleteMediaButton({
     setBusy(true);
     try {
       const r = await api.deleteItems(account, postIds, keepNotes);
-      if (keepNotes) toast.success(t("delete.freeDone", { n: r.deleted }));
-      else toast.success(many ? t("delete.bulkDone", { n: r.deleted }) : t("delete.itemDone"));
+      if (keepNotes) {
+        // Honor the engine's freedBytes contract: if the file was locked the row
+        // still drops but nothing is reclaimed — don't claim space was freed.
+        if (r.freedBytes > 0)
+          toast.success(t("delete.freeDone", { n: r.deleted, size: formatBytes(r.freedBytes) }));
+        else toast.warning(t("delete.freeNone", { n: r.deleted }));
+      } else {
+        toast.success(many ? t("delete.bulkDone", { n: r.deleted }) : t("delete.itemDone"));
+      }
       setOpen(false);
       onDeleted?.();
     } catch (e) {
