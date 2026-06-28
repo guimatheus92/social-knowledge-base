@@ -34,13 +34,9 @@ export function DeleteAccountButton({
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [deleteFiles, setDeleteFiles] = useState(false);
-  const [confirmChecked, setConfirmChecked] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const canDelete = confirmChecked;
-
   async function doDelete() {
-    if (!canDelete) return;
     setBusy(true);
     try {
       const r = await api.deleteAccount(account, deleteFiles);
@@ -63,10 +59,7 @@ export function DeleteAccountButton({
       open={open}
       onOpenChange={(o) => {
         setOpen(o);
-        if (!o) {
-          setConfirmChecked(false);
-          setDeleteFiles(false);
-        }
+        if (!o) setDeleteFiles(false);
       }}
     >
       <Tooltip>
@@ -110,19 +103,9 @@ export function DeleteAccountButton({
           </span>
         </label>
 
-        <label className="flex items-center gap-2.5 text-sm">
-          <input
-            type="checkbox"
-            checked={confirmChecked}
-            onChange={(e) => setConfirmChecked(e.target.checked)}
-            className="size-4 accent-coral"
-          />
-          <span>{t("delete.confirmCheckbox", { account })}</span>
-        </label>
-
         <AlertDialogFooter>
           <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-          <Button variant="destructive" onClick={doDelete} disabled={!canDelete || busy}>
+          <Button variant="destructive" onClick={doDelete} disabled={busy}>
             {busy ? <Loader2 className="animate-spin" /> : <Trash2 />}
             {t("delete.accountConfirm")}
           </Button>

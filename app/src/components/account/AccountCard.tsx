@@ -28,7 +28,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
-import { networkMeta } from "@/lib/networks";
+import { networkMeta, profileUrl } from "@/lib/networks";
 import type { MediaType } from "@/lib/types";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -81,10 +81,26 @@ export function AccountCard({
     <Card>
       <CardHeader>
         <CardTitle className="flex min-w-0 items-center gap-3">
-          <AccountAvatar account={summary.account} network={summary.network} />
+          <a
+            href={profileUrl(summary.network, summary.account)}
+            target="_blank"
+            rel="noreferrer noopener"
+            aria-label={t("card.openProfile", { network: networkMeta(summary.network).label })}
+            className="shrink-0 rounded-full outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            <AccountAvatar account={summary.account} network={summary.network} />
+          </a>
           <div className="flex min-w-0 flex-col gap-0.5">
             <div className="flex items-center gap-2">
-              <span className="truncate font-heading">@{summary.account}</span>
+              <a
+                href={profileUrl(summary.network, summary.account)}
+                target="_blank"
+                rel="noreferrer noopener"
+                title={t("card.openProfile", { network: networkMeta(summary.network).label })}
+                className="truncate font-heading underline-offset-2 outline-none transition hover:text-coral hover:underline focus-visible:underline"
+              >
+                @{summary.account}
+              </a>
               <StatusPill status={status} rateLimited={snapshot?.rateLimited} />
             </div>
             <div className="flex items-center gap-2">
