@@ -129,6 +129,11 @@ export const api = {
       postIds,
       keepNotes,
     }),
+  noteCount: (account: string, postIds: string[]) =>
+    jpost<{ total: number; noted: number }>(
+      `/api/accounts/${encodeURIComponent(account)}/items/note-count`,
+      { postIds },
+    ),
   deleteAccount: (account: string, deleteFiles: boolean) =>
     jdel<DeleteAccountResult & { ok: boolean }>(`/api/accounts/${encodeURIComponent(account)}`, {
       deleteFiles,

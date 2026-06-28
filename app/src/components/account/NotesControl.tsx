@@ -21,10 +21,12 @@ import { useT } from "@/i18n/I18nProvider";
 export function NotesControl({
   account,
   unnoted,
+  noted,
   noteLanguage,
 }: {
   account: string;
   unnoted: number;
+  noted: number;
   noteLanguage: string | null;
 }) {
   const t = useT();
@@ -101,13 +103,17 @@ export function NotesControl({
     );
   }
 
-  // Nothing left to do: every downloaded video already has a note.
+  // No note candidates left. Distinguish "every video is noted" (a real win)
+  // from "there are simply no notes yet" — the latter is what an empty/freed
+  // profile shows, and calling it "all noted" is misleading.
   if (unnoted === 0) {
-    return (
+    return noted > 0 ? (
       <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
         <Check className="size-3.5 text-emerald-400" />
         {t("notes.allDone")}
       </span>
+    ) : (
+      <span className="text-xs text-muted-foreground">{t("notes.none")}</span>
     );
   }
 

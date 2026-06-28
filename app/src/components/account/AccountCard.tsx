@@ -241,6 +241,7 @@ export function AccountCard({
           <NotesControl
             account={summary.account}
             unnoted={summary.counts.unnotedVideos}
+            noted={summary.counts.notedVideos}
             noteLanguage={summary.noteLanguage}
           />
         </div>

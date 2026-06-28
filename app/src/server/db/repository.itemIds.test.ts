@@ -19,7 +19,7 @@ vi.mock("@/server/db/sqlite", () => ({
   isDeleting: () => false,
 }));
 
-import { listItemIds } from "@/server/db/repository";
+import { countNotedAmong, listItemIds } from "@/server/db/repository";
 
 describe("listItemIds", () => {
   beforeEach(() => {
@@ -58,5 +58,23 @@ describe("listItemIds", () => {
       "WHERE status = ? AND media_type = ? AND origin = ? AND (caption LIKE ? OR post_id LIKE ?)",
     );
     expect(calls[0].params).toEqual(["downloaded", "video", "reel", "%x%", "%x%"]);
+  });
+});
+
+// The mock returns post_ids 10 + 20 as the account's noted set for any query.
+describe("countNotedAmong", () => {
+  beforeEach(() => {
+    calls.length = 0;
+  });
+
+  it("returns 0 for an empty selection (and never queries the db)", () => {
+    expect(countNotedAmong("acc", [])).toBe(0);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("counts how many of the given ids are in the noted set", () => {
+    expect(countNotedAmong("acc", ["10", "30", "20"])).toBe(2); // 10 + 20 noted, 30 not
+    expect(countNotedAmong("acc", ["30", "40"])).toBe(0);
+    expect(calls[0].sql).toContain("status = 'read' OR note_path IS NOT NULL");
   });
 });

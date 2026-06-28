@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HardDrive, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,6 +47,27 @@ export function DeleteMediaButton({
   const many = n > 1;
   const Icon = keepNotes ? HardDrive : Trash2;
 
+  // When the "free space" dialog opens, find how many selected items have no
+  // note yet — freeing those deletes the only copy of their content with nothing
+  // kept. The dialog is modal, so the selection is fixed while it's open.
+  const [noteInfo, setNoteInfo] = useState<{ total: number; noted: number } | null>(null);
+  useEffect(() => {
+    if (!open || !keepNotes) return;
+    let cancelled = false;
+    api
+      .noteCount(account, postIds)
+      .then((info) => {
+        if (!cancelled) setNoteInfo(info);
+      })
+      .catch(() => {
+        /* best-effort: no warning if the probe fails */
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once per open; selection is fixed while the modal is open
+  }, [open, keepNotes, account]);
+
   async function doDelete() {
     if (!n) return;
     setBusy(true);
@@ -89,7 +110,13 @@ export function DeleteMediaButton({
       : t("delete.itemDescription");
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) setNoteInfo(null);
+      }}
+    >
       <AlertDialogTrigger
         render={
           <Button variant={variant} size="sm" disabled={!n}>
@@ -103,6 +130,13 @@ export function DeleteMediaButton({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
+        {keepNotes && noteInfo && noteInfo.noted < noteInfo.total && (
+          <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            {noteInfo.noted === 0
+              ? t("delete.freeNoNoteAll", { total: noteInfo.total })
+              : t("delete.freeNoNoteSome", { n: noteInfo.total - noteInfo.noted, total: noteInfo.total })}
+          </p>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
           <Button variant="destructive" onClick={doDelete} disabled={busy}>

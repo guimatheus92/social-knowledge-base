@@ -81,6 +81,8 @@ export interface Counts {
   downloaded: number;
   /** Downloaded videos that don't have a curated note yet (note candidates). */
   unnotedVideos: number;
+  /** Videos that already have a curated note (status 'read'). */
+  notedVideos: number;
 }
 
 /* ---- Job types (shared server↔UI; no runtime) ---- */

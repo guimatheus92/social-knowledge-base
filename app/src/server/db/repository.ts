@@ -281,6 +281,7 @@ export function getCounts(account: string): Counts {
     bytesTotal: 0,
     downloaded: 0,
     unnotedVideos: 0,
+    notedVideos: 0,
   };
   for (const r of rows) {
     const n = num(r.n);
@@ -297,6 +298,10 @@ export function getCounts(account: string): Counts {
     // A video is "unnoted" once downloaded but not yet read (= no note written).
     if (r.media_type === "video" && r.status === "downloaded") {
       counts.unnotedVideos += n;
+    }
+    // A video is "noted" once read (a curated note exists for it).
+    if (r.media_type === "video" && r.status === "read") {
+      counts.notedVideos += n;
     }
   }
   return counts;
@@ -362,6 +367,24 @@ export function listItemIds(account: string, opts: ItemFilter = {}): string[] {
   const { clause, params } = buildItemWhere(opts);
   const sql = `SELECT post_id FROM item ${clause}`;
   return (openDb(account).prepare(sql).all(...params) as { post_id: string }[]).map((r) => r.post_id);
+}
+
+/**
+ * How many of the given ids already have a curated note (status 'read' or a
+ * note_path) — backs the "free up space" warning, where freeing an un-noted
+ * item deletes the only copy of its content with nothing kept. Intersects the
+ * account's noted-id set in memory to avoid a giant SQL `IN (...)`.
+ */
+export function countNotedAmong(account: string, postIds: string[]): number {
+  if (!postIds.length) return 0;
+  const noted = new Set(
+    (
+      openDb(account)
+        .prepare("SELECT post_id FROM item WHERE status = 'read' OR note_path IS NOT NULL")
+        .all() as { post_id: string }[]
+    ).map((r) => r.post_id),
+  );
+  return postIds.reduce((n, id) => n + (noted.has(id) ? 1 : 0), 0);
 }
 
 /** Names of existing accounts (scans manifests/*.db). */
