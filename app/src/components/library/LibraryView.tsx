@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowLeft, CheckSquare, X } from "lucide-react";
+import { ArrowLeft, CheckCheck, CheckSquare, X } from "lucide-react";
 import { SearchFilterBar } from "@/components/library/SearchFilterBar";
 import { LibraryGrid } from "@/components/library/LibraryGrid";
 import { VideoDetailDialog } from "@/components/library/VideoDetailDialog";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useStats } from "@/hooks/useAccounts";
 import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/i18n/I18nProvider";
-import type { ItemFilters } from "@/hooks/useItems";
+import { useItems, type ItemFilters } from "@/hooks/useItems";
 import type { Item } from "@/lib/types";
 
 export function LibraryView({ account }: { account: string }) {
@@ -57,6 +57,12 @@ export function LibraryView({ account }: { account: string }) {
   const { data: stats } = useStats(account);
   const total = stats?.counts.total ?? 0;
 
+  // Same query key as LibraryGrid → react-query shares the cache (no extra fetch).
+  // "Select all" covers the items currently loaded into the grid.
+  const { data: itemsData } = useItems(account, filters);
+  const loadedItems = itemsData?.pages.flatMap((p) => p.items) ?? [];
+  const allSelected = loadedItems.length > 0 && loadedItems.every((i) => selected.has(i.postId));
+
   return (
     <main className="mx-auto w-full max-w-6xl space-y-5 p-6">
       <header className="flex items-center gap-3">
@@ -82,6 +88,20 @@ export function LibraryView({ account }: { account: string }) {
       {selectMode ? (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-white/[0.03] px-3 py-2 text-sm">
           <span className="text-muted-foreground">{t("delete.selectedCount", { n: selected.size })}</span>
+          {loadedItems.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={
+                allSelected
+                  ? () => setSelected(new Set())
+                  : () => setSelected(new Set(loadedItems.map((i) => i.postId)))
+              }
+            >
+              <CheckCheck />
+              {allSelected ? t("delete.clearSel") : t("delete.selectAll")}
+            </Button>
+          )}
           <div className="ml-auto flex items-center gap-2">
             <DeleteMediaButton
               account={account}
