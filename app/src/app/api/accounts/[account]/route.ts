@@ -71,7 +71,7 @@ export async function DELETE(
     /* no body → keep the files on disk */
   }
   try {
-    return Response.json({ ok: true, ...deleteAccount(account, { deleteFiles }) });
+    return Response.json({ ok: true, ...(await deleteAccount(account, { deleteFiles })) });
   } catch (e) {
     return Response.json({ error: (e as Error).message || "delete failed" }, { status: 400 });
   }

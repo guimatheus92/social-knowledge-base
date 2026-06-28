@@ -16,7 +16,10 @@ vi.mock("@/server/db/repository", () => ({
   getCounts: vi.fn(),
   deleteItemRows: vi.fn(),
 }));
-vi.mock("@/server/db/sqlite", () => ({ closeDb: vi.fn() }));
+vi.mock("@/server/db/sqlite", () => ({
+  closeDb: vi.fn(),
+  openDb: vi.fn(() => ({ exec: vi.fn() })),
+}));
 vi.mock("@/server/engine/thumbnails", () => ({
   thumbPathFor: (dir: string, id: string) => `${dir}/.thumbs/${id}.jpg`,
 }));
@@ -86,11 +89,12 @@ describe("deleteAccount", () => {
     vi.clearAllMocks();
     vi.mocked(repo.getAccount).mockReturnValue({ savePath: "/data/downloads/acc" } as any);
     vi.mocked(repo.getCounts).mockReturnValue({ bytesTotal: 5000 } as any);
-    vi.mocked(existsSync).mockReturnValue(true);
+    // saveDir exists; the manifest is "gone" after the unlink (the verify passes).
+    vi.mocked(existsSync).mockImplementation((p) => String(p).replace(/\\/g, "/").includes("/downloads/"));
   });
 
-  it("stops the job, drops the manifest, KEEPS the files by default", () => {
-    const r = deleteAccount("acc");
+  it("stops the job, drops the manifest, KEEPS the files by default", async () => {
+    const r = await deleteAccount("acc");
     expect(jobManager.stop).toHaveBeenCalledWith("acc");
     expect(closeDb).toHaveBeenCalledWith("acc");
     expect(r.freedBytes).toBe(0);
@@ -99,13 +103,18 @@ describe("deleteAccount", () => {
     expect(paths).not.toContain("/data/downloads/acc"); // savePath untouched
   });
 
-  it("also deletes the files recursively + reports freed bytes when asked", () => {
-    const r = deleteAccount("acc", { deleteFiles: true });
+  it("also deletes the files recursively + reports freed bytes when asked", async () => {
+    const r = await deleteAccount("acc", { deleteFiles: true });
     expect(r.freedBytes).toBe(5000);
     const recursiveDir = vi
       .mocked(rmSync)
       .mock.calls.find((c) => String(c[0]).replace(/\\/g, "/") === "/data/downloads/acc");
     expect(recursiveDir).toBeTruthy();
     expect((recursiveDir?.[1] as any)?.recursive).toBe(true);
+  });
+
+  it("throws when the manifest can't actually be removed (still locked)", async () => {
+    vi.mocked(existsSync).mockReturnValue(true); // .db still present after every unlink attempt
+    await expect(deleteAccount("acc")).rejects.toThrow(/manifest/);
   });
 });
