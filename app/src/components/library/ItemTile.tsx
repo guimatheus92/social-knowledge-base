@@ -26,6 +26,7 @@ export function ItemTile({
   onSelect: () => void;
   /** When set (the global Gallery), shows which profile this media belongs to. */
   handle?: string;
+  /** Selection mode: when true the tile toggles selection instead of opening detail. */
   selectMode?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;

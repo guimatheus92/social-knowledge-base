@@ -210,6 +210,7 @@ export function VideoDetailDialog({
                     onDeleted={() => {
                       qc.invalidateQueries({ queryKey: ["gallery"] });
                       qc.invalidateQueries({ queryKey: ["items"] });
+                      qc.invalidateQueries({ queryKey: ["stats", account] });
                       qc.invalidateQueries({ queryKey: ["accounts"] });
                       onOpenChange(false);
                     }}

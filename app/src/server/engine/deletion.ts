@@ -1,47 +1,57 @@
 /**
  * Deletes media (files + manifest rows) and whole accounts. File removal is
- * best-effort: a missing or locked file never aborts the rest of the operation.
+ * best-effort: a locked file (EBUSY/EPERM on Windows) never aborts the rest.
+ * The reported `freedBytes` only counts files that were actually removed, so it
+ * is a lower bound — never claims success for a file that survived.
  */
 import { rmSync, existsSync, statSync } from "node:fs";
 import { basename, dirname, extname, isAbsolute, join } from "node:path";
-import { ROOT, MANIFESTS } from "@/server/paths";
+import { ROOT, MANIFESTS, assertSafeSegment } from "@/server/paths";
 import { deleteItemRows, getAccount, getCounts, getItem } from "@/server/db/repository";
 import { closeDb } from "@/server/db/sqlite";
 import { thumbPathFor } from "@/server/engine/thumbnails";
 import { jobManager } from "@/server/engine/jobManager";
+import type { DeleteAccountResult, DeleteMediaResult } from "@/lib/types";
 
-function tryRm(p: string): void {
+/**
+ * Remove a file. Returns whether it was actually removed. `force: true` already
+ * ignores a missing path, so a `false` here means a real failure (a locked file
+ * — EBUSY/EPERM), which the caller may or may not care about.
+ */
+function tryRm(p: string): boolean {
   try {
     rmSync(p, { force: true });
+    return true;
   } catch {
-    /* best-effort: a missing/locked file shouldn't abort the rest */
+    return false;
+  }
+}
+
+function safeSize(p: string): number {
+  try {
+    return statSync(p).size;
+  } catch {
+    return 0; // size probe is best-effort
   }
 }
 
 /** Delete media items: their files (video + sidecars + thumb + note) and DB rows. */
-export function deleteMediaItems(
-  account: string,
-  postIds: string[],
-): { deleted: number; freedBytes: number } {
+export function deleteMediaItems(account: string, postIds: string[]): DeleteMediaResult {
   const acc = getAccount(account);
   const saveDir = acc?.savePath ?? join(ROOT, "downloads", account);
   let freedBytes = 0;
   let deleted = 0;
   for (const postId of postIds) {
+    assertSafeSegment(postId); // never interpolate a crafted id into an rmSync path
     const it = getItem(account, postId);
     if (!it) continue;
     if (it.relPath) {
       const abs = isAbsolute(it.relPath) ? it.relPath : join(ROOT, it.relPath);
-      if (existsSync(abs)) {
-        try {
-          freedBytes += statSync(abs).size;
-        } catch {
-          /* size is best-effort */
-        }
-      }
-      tryRm(abs);
-      // transcript .vtt sidecar lives next to the video
-      tryRm(join(dirname(abs), `${basename(abs, extname(abs))}.vtt`));
+      const size = existsSync(abs) ? safeSize(abs) : 0;
+      // Only count the primary media file as freed if it was actually removed.
+      if (tryRm(abs)) freedBytes += size;
+      else console.warn(`[deletion] could not remove ${abs}; the manifest row is dropped anyway`);
+      tryRm(join(dirname(abs), `${basename(abs, extname(abs))}.vtt`)); // .vtt sidecar next to the video
     }
     tryRm(join(saveDir, "transcripts", `${postId}.txt`));
     tryRm(join(saveDir, "transcripts", `${postId}.json`));
@@ -58,19 +68,19 @@ export function deleteMediaItems(
 export function deleteAccount(
   account: string,
   opts: { deleteFiles?: boolean } = {},
-): { freedBytes: number } {
+): DeleteAccountResult {
   jobManager.stop(account);
   const acc = getAccount(account);
   const saveDir = acc?.savePath ?? join(ROOT, "downloads", account);
   let freedBytes = 0;
-  if (opts.deleteFiles) {
-    freedBytes = getCounts(account).bytesTotal; // read before dropping the DB
-    if (existsSync(saveDir)) {
-      try {
-        rmSync(saveDir, { recursive: true, force: true });
-      } catch {
-        /* best-effort */
-      }
+  if (opts.deleteFiles && existsSync(saveDir)) {
+    const total = getCounts(account).bytesTotal; // read before dropping the DB
+    try {
+      rmSync(saveDir, { recursive: true, force: true });
+      freedBytes = total; // only claim it once the removal actually succeeded
+    } catch (e) {
+      // Surface it; the manifest is still dropped below, and the UI sees freedBytes=0.
+      console.warn(`[deletion] files at ${saveDir} could not be removed: ${(e as Error).message}`);
     }
   }
   closeDb(account); // release the SQLite handle before unlinking the manifest

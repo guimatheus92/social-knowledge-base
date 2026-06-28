@@ -117,10 +117,10 @@ export function upsertAccount(a: AccountInput): void {
 
 export function updateAccountSettings(
   account: string,
-  p: { mediaTypes?: MediaType[]; tabs?: Tab[]; savePath?: string; parallelism?: number; noteLanguage?: string; category?: string },
+  p: { mediaTypes?: MediaType[]; tabs?: Tab[]; savePath?: string; parallelism?: number; noteLanguage?: string; category?: string | null },
 ): void {
   const sets: string[] = [];
-  const vals: (string | number)[] = [];
+  const vals: (string | number | null)[] = [];
   if (p.mediaTypes) {
     sets.push("media_types = ?");
     vals.push(p.mediaTypes.join(","));
@@ -141,9 +141,9 @@ export function updateAccountSettings(
     sets.push("note_language = ?");
     vals.push(p.noteLanguage);
   }
-  if (p.category != null) {
+  if (p.category !== undefined) {
     sets.push("category = ?");
-    vals.push(p.category);
+    vals.push((p.category ?? "").trim() || null); // "" clears the category (matches the null read type)
   }
   if (sets.length === 0) return;
   sets.push("updated_at = ?");
@@ -241,8 +241,16 @@ export function getItem(account: string, postId: string): Item | null {
 /** Remove item rows by post id (their files are deleted by the deletion engine). */
 export function deleteItemRows(account: string, postIds: string[]): void {
   if (!postIds.length) return;
-  const stmt = openDb(account).prepare("DELETE FROM item WHERE post_id = ?");
-  for (const id of postIds) stmt.run(id);
+  const db = openDb(account);
+  const stmt = db.prepare("DELETE FROM item WHERE post_id = ?");
+  db.exec("BEGIN");
+  try {
+    for (const id of postIds) stmt.run(id);
+    db.exec("COMMIT");
+  } catch (e) {
+    db.exec("ROLLBACK");
+    throw e;
+  }
 }
 
 export function markRead(

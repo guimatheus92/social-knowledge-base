@@ -5,7 +5,11 @@ vi.mock("node:fs", () => ({
   existsSync: vi.fn(() => true),
   statSync: vi.fn(() => ({ size: 100 })),
 }));
-vi.mock("@/server/paths", () => ({ ROOT: "/root", MANIFESTS: "/root/manifests" }));
+vi.mock("@/server/paths", () => ({
+  ROOT: "/root",
+  MANIFESTS: "/root/manifests",
+  assertSafeSegment: (s: string) => s,
+}));
 vi.mock("@/server/db/repository", () => ({
   getAccount: vi.fn(),
   getItem: vi.fn(),
@@ -54,6 +58,26 @@ describe("deleteMediaItems", () => {
     const r = deleteMediaItems("acc", ["x"]);
     expect(r.deleted).toBe(0);
     expect(repo.deleteItemRows).toHaveBeenCalledWith("acc", ["x"]);
+  });
+
+  it("accumulates over a batch, ignoring ids not in the manifest", () => {
+    vi.mocked(repo.getItem).mockImplementation((_a: string, id: string) =>
+      id === "3" ? null : ({ relPath: `downloads/acc/reels/${id}.mp4` } as any),
+    );
+    const r = deleteMediaItems("acc", ["1", "2", "3"]);
+    expect(r).toEqual({ deleted: 2, freedBytes: 200 }); // 1 + 2 found (100 each); 3 missing
+    expect(repo.deleteItemRows).toHaveBeenCalledWith("acc", ["1", "2", "3"]);
+  });
+
+  it("does NOT count a locked primary file as freed, but still drops the row", () => {
+    vi.mocked(repo.getItem).mockReturnValue({ relPath: "downloads/acc/reels/1.mp4" } as any);
+    vi.mocked(rmSync).mockImplementationOnce(() => {
+      throw new Error("EBUSY"); // the primary video is locked (Windows)
+    });
+    const r = deleteMediaItems("acc", ["1"]);
+    expect(r.freedBytes).toBe(0); // not counted as freed
+    expect(r.deleted).toBe(1); // row still dropped
+    expect(repo.deleteItemRows).toHaveBeenCalledWith("acc", ["1"]);
   });
 });
 

@@ -31,7 +31,8 @@ export function SearchFilterBar({
 
   const set = (p: Partial<ItemFilters>) => onChange({ ...value, ...p });
 
-  // Base UI's <SelectValue> renders the raw value; map each to its localized label.
+  // <SelectValue> can't resolve value→label without an "items" prop, so pass a
+  // child function to map each value to its localized label.
   const v = (x: unknown) => String(x ?? "");
   const originLabel = (x: unknown) =>
     ({

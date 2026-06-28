@@ -4,6 +4,8 @@ import type {
   AnalysisConfig,
   BulkNotesStatus,
   Counts,
+  DeleteAccountResult,
+  DeleteMediaResult,
   GalleryItem,
   Item,
   JobSnapshot,
@@ -119,12 +121,9 @@ export const api = {
     body: Partial<{ media: string[]; tabs: string[]; savePath: string; parallelism: number; noteLanguage: string; category: string }>,
   ) => jpatch<AccountSummary>(`/api/accounts/${encodeURIComponent(account)}`, body),
   deleteItems: (account: string, postIds: string[]) =>
-    jdel<{ deleted: number; freedBytes: number }>(
-      `/api/accounts/${encodeURIComponent(account)}/items`,
-      { postIds },
-    ),
+    jdel<DeleteMediaResult>(`/api/accounts/${encodeURIComponent(account)}/items`, { postIds }),
   deleteAccount: (account: string, deleteFiles: boolean) =>
-    jdel<{ ok: boolean; freedBytes: number }>(`/api/accounts/${encodeURIComponent(account)}`, {
+    jdel<DeleteAccountResult & { ok: boolean }>(`/api/accounts/${encodeURIComponent(account)}`, {
       deleteFiles,
     }),
   pickDir: (current?: string) =>

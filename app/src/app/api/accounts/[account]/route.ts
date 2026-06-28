@@ -66,7 +66,7 @@ export async function DELETE(
   }
   let deleteFiles = false;
   try {
-    deleteFiles = !!(await req.json())?.deleteFiles;
+    deleteFiles = (await req.json())?.deleteFiles === true;
   } catch {
     /* no body → keep the files on disk */
   }

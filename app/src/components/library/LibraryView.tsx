@@ -90,6 +90,7 @@ export function LibraryView({ account }: { account: string }) {
               onDeleted={() => {
                 exitSelect();
                 qc.invalidateQueries({ queryKey: ["items"] });
+                qc.invalidateQueries({ queryKey: ["stats", account] });
                 qc.invalidateQueries({ queryKey: ["accounts"] });
                 qc.invalidateQueries({ queryKey: ["gallery"] });
               }}

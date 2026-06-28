@@ -177,6 +177,19 @@ export interface GalleryItem extends Item {
   category: string | null;
 }
 
+/** Result of deleting media. File removal is best-effort, so `freedBytes` is a
+ *  lower bound (a locked file is dropped from the manifest but not counted). */
+export interface DeleteMediaResult {
+  deleted: number;
+  freedBytes: number;
+}
+
+/** Result of deleting an account. `freedBytes` is disk reclaimed — 0 unless
+ *  `deleteFiles` was set AND the removal actually succeeded. */
+export interface DeleteAccountResult {
+  freedBytes: number;
+}
+
 /** Filters + sort for the global Gallery — one shape shared by the client hook
  *  and the server aggregator so `media`/`origin`/`sort`/`order` stay typed. */
 export interface GalleryQuery {
