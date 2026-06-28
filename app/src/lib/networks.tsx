@@ -77,3 +77,17 @@ export const DEFAULT_NETWORK = "instagram";
 export function networkMeta(id?: string | null): NetworkMeta {
   return NETWORKS.find((n) => n.id === id) ?? NETWORKS[0];
 }
+
+/** Public URL of a handle's profile on its network (opens the creator's page). */
+export function profileUrl(network: string | null | undefined, account: string): string {
+  const a = encodeURIComponent(account);
+  switch (network) {
+    case "tiktok":
+      return `https://www.tiktok.com/@${a}`;
+    case "youtube":
+      return `https://www.youtube.com/@${a}`;
+    case "instagram":
+    default:
+      return `https://www.instagram.com/${a}/`;
+  }
+}

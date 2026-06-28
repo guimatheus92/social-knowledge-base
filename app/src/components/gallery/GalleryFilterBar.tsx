@@ -38,6 +38,7 @@ export function GalleryFilterBar({
   const set = (p: Partial<GalleryFilters>) => onChange({ ...value, ...p });
   const profiles = [...(accounts ?? [])].map((a) => a.account).sort();
   const networks = [...new Set((accounts ?? []).map((a) => a.network))];
+  const categories = [...new Set((accounts ?? []).map((a) => a.category).filter(Boolean))] as string[];
   const order = value.order ?? "desc";
 
   // Base UI's <SelectValue> renders the raw value; map each to its localized label.
@@ -45,6 +46,7 @@ export function GalleryFilterBar({
   const profileLabel = (x: unknown) => (v(x) && v(x) !== "all" ? `@${v(x)}` : t("gallery.profileAll"));
   const networkLabel = (x: unknown) =>
     v(x) && v(x) !== "all" ? networkMeta(v(x)).label : t("gallery.networkAll");
+  const categoryLabel = (x: unknown) => (v(x) && v(x) !== "all" ? v(x) : t("gallery.categoryAll"));
   const mediaLabel = (x: unknown) =>
     v(x) === "video" ? t("library.mediaVideo") : v(x) === "image" ? t("library.mediaImage") : t("library.mediaAll");
   const originLabel = (x: unknown) =>
@@ -99,6 +101,25 @@ export function GalleryFilterBar({
             {networks.map((n) => (
               <SelectItem key={n} value={n}>
                 {networkMeta(n).label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      {categories.length > 0 && (
+        <Select
+          value={value.category ?? "all"}
+          onValueChange={(val) => set({ category: val && val !== "all" ? val : undefined })}
+        >
+          <SelectTrigger size="sm" className="w-36">
+            <SelectValue>{categoryLabel}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("gallery.categoryAll")}</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c} value={c}>
+                {c}
               </SelectItem>
             ))}
           </SelectContent>

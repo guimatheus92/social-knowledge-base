@@ -6,7 +6,14 @@ import { MANIFESTS, assertSafeSegment } from "@/server/paths";
 import { SCHEMA } from "@/server/db/schema";
 
 // Connection cache (single writer = Node process; WAL allows concurrent reads).
-const cache = new Map<string, DatabaseSync>();
+// Pinned to globalThis so Next's dev HMR reuses one cache/connection per account
+// across reloads — otherwise stale duplicate connections pile up and keep the
+// manifest files locked (e.g. an account delete can't unlink the .db).
+const g = globalThis as typeof globalThis & {
+  __skbDbCache?: Map<string, DatabaseSync>;
+  __skbDeleting?: Set<string>;
+};
+const cache = (g.__skbDbCache ??= new Map<string, DatabaseSync>());
 
 export function dbPath(account: string): string {
   return join(MANIFESTS, `${account}.db`);
@@ -25,6 +32,7 @@ export function openDb(account: string): DatabaseSync {
     "estimated_total INTEGER",
     "network TEXT NOT NULL DEFAULT 'instagram'",
     "note_language TEXT",
+    "category TEXT",
   ]) {
     try {
       db.exec(`ALTER TABLE account ADD COLUMN ${col}`);
@@ -47,4 +55,21 @@ export function closeDb(account: string): void {
 export function closeAll(): void {
   for (const db of cache.values()) db.close();
   cache.clear();
+}
+
+/**
+ * Accounts currently being deleted. While an account sits here, getAccount and
+ * listAccountNames pretend it's gone, so a concurrent request (e.g. the 5s
+ * /api/accounts poll) can't re-open its manifest mid-delete and re-lock the file
+ * between close() and the unlink.
+ */
+const deleting = (g.__skbDeleting ??= new Set<string>());
+export function markDeleting(account: string): void {
+  deleting.add(account);
+}
+export function unmarkDeleting(account: string): void {
+  deleting.delete(account);
+}
+export function isDeleting(account: string): boolean {
+  return deleting.has(account);
 }

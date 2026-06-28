@@ -31,6 +31,20 @@ export function SearchFilterBar({
 
   const set = (p: Partial<ItemFilters>) => onChange({ ...value, ...p });
 
+  // <SelectValue> can't resolve value→label without an "items" prop, so pass a
+  // child function to map each value to its localized label.
+  const v = (x: unknown) => String(x ?? "");
+  const originLabel = (x: unknown) =>
+    ({
+      highlight: t("library.originHighlight"),
+      reel: t("library.originReel"),
+      story: t("library.originStory"),
+      post: t("library.originPost"),
+    })[v(x)] ?? t("library.originAll");
+  const mediaLabel = (x: unknown) =>
+    v(x) === "video" ? t("library.mediaVideo") : v(x) === "image" ? t("library.mediaImage") : t("library.mediaAll");
+  const sortLabel = (x: unknown) => (v(x) === "size" ? t("library.sortSize") : t("library.sortDate"));
+
   return (
     <div className="flex flex-wrap items-center gap-3">
       <div className="relative min-w-56 flex-1">
@@ -45,7 +59,7 @@ export function SearchFilterBar({
 
       <Select value={value.origin ?? "all"} onValueChange={(v) => set({ origin: v && v !== "all" ? v : undefined })}>
         <SelectTrigger className="w-40">
-          <SelectValue placeholder={t("library.originPlaceholder")} />
+          <SelectValue>{originLabel}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">{t("library.originAll")}</SelectItem>
@@ -58,7 +72,7 @@ export function SearchFilterBar({
 
       <Select value={value.media ?? "all"} onValueChange={(v) => set({ media: v && v !== "all" ? v : undefined })}>
         <SelectTrigger className="w-36">
-          <SelectValue placeholder={t("library.mediaPlaceholder")} />
+          <SelectValue>{mediaLabel}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">{t("library.mediaAll")}</SelectItem>
@@ -69,7 +83,7 @@ export function SearchFilterBar({
 
       <Select value={value.sort ?? "date"} onValueChange={(v) => v && set({ sort: v as "date" | "size" })}>
         <SelectTrigger className="w-40">
-          <SelectValue />
+          <SelectValue>{sortLabel}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="date">{t("library.sortDate")}</SelectItem>

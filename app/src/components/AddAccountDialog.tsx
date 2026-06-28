@@ -20,8 +20,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { MediaTypeToggle } from "@/components/controls/MediaTypeToggle";
 import { TabSelector } from "@/components/controls/TabSelector";
 import { SavePathPicker } from "@/components/controls/SavePathPicker";
+import { CategoryInput } from "@/components/controls/CategoryInput";
 import { useT } from "@/i18n/I18nProvider";
 import { api } from "@/lib/api";
+import { useAccounts } from "@/hooks/useAccounts";
 import { cn } from "@/lib/utils";
 import { NETWORKS, DEFAULT_NETWORK } from "@/lib/networks";
 import type { MediaType, Tab } from "@/lib/types";
@@ -49,11 +51,14 @@ export function AddAccountDialog({
     media: MediaType[];
     tabs: Tab[];
     network: string;
+    category: string;
   }) => void;
 }) {
   const t = useT();
+  const { data: accounts } = useAccounts();
   const [open, setOpen] = useState(false);
   const [account, setAccount] = useState("");
+  const [category, setCategory] = useState("");
   const [baseDir, setBaseDir] = useState("");
   const [savePath, setSavePath] = useState("");
   const [savePathTouched, setSavePathTouched] = useState(false);
@@ -72,11 +77,13 @@ export function AddAccountDialog({
 
   const handle = sanitizeHandle(account);
   const canAdd = handle.length > 0;
+  const catSuggestions = [...new Set((accounts ?? []).map((a) => a.category).filter(Boolean))] as string[];
   const effectiveSavePath =
     savePathTouched && savePath.length > 0 ? savePath : joinPath(baseDir, handle);
 
   function reset() {
     setAccount("");
+    setCategory("");
     setSavePath("");
     setSavePathTouched(false);
     setMedia(DEFAULT_MEDIA);
@@ -91,7 +98,7 @@ export function AddAccountDialog({
 
   function submit() {
     if (!canAdd) return;
-    onAdd({ account: handle, savePath: effectiveSavePath, media, tabs, network });
+    onAdd({ account: handle, savePath: effectiveSavePath, media, tabs, network, category });
     handleOpenChange(false);
   }
 
@@ -171,6 +178,18 @@ export function AddAccountDialog({
               autoCapitalize="none"
               spellCheck={false}
               required
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="add-account-category" className="text-xs text-muted-foreground">
+              {t("category.labelOptional")}
+            </Label>
+            <CategoryInput
+              id="add-account-category"
+              value={category}
+              onChange={setCategory}
+              suggestions={catSuggestions}
             />
           </div>
 

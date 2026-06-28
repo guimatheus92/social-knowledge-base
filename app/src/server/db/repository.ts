@@ -2,7 +2,7 @@
 import { writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { MANIFESTS } from "@/server/paths";
-import { openDb } from "@/server/db/sqlite";
+import { openDb, isDeleting } from "@/server/db/sqlite";
 import type {
   Account,
   Counts,
@@ -52,6 +52,7 @@ function rowToAccount(r: any): Account {
     parallelism: num(r.parallelism),
     network: r.network ?? "instagram",
     noteLanguage: r.note_language ?? null,
+    category: r.category ?? null,
     elapsedSeconds: num(r.elapsed_seconds),
     lastSyncedAt: r.last_synced_at ?? null,
     estimatedTotal: r.estimated_total == null ? null : num(r.estimated_total),
@@ -67,6 +68,7 @@ export function setEstimatedTotal(account: string, total: number): void {
 }
 
 export function getAccount(account: string): Account | null {
+  if (isDeleting(account)) return null; // mid-delete: don't re-open the manifest
   const db = openDb(account);
   const r = db.prepare("SELECT * FROM account WHERE account = ?").get(account);
   return r ? rowToAccount(r) : null;
@@ -81,6 +83,8 @@ export interface AccountInput {
   parallelism?: number;
   /** Source network provider id; set once at creation, defaults to instagram. */
   network?: string;
+  /** User-chosen topic (Travel, Tech, Milhas…). */
+  category?: string | null;
 }
 
 export function upsertAccount(a: AccountInput): void {
@@ -88,14 +92,15 @@ export function upsertAccount(a: AccountInput): void {
   const now = new Date().toISOString();
   // `network` is identity: set once at creation, never overwritten on conflict.
   db.prepare(
-    `INSERT INTO account (account, save_path, cookies_path, media_types, tabs, parallelism, network, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?)
+    `INSERT INTO account (account, save_path, cookies_path, media_types, tabs, parallelism, network, category, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(account) DO UPDATE SET
        save_path=excluded.save_path,
        cookies_path=COALESCE(excluded.cookies_path, account.cookies_path),
        media_types=excluded.media_types,
        tabs=excluded.tabs,
        parallelism=excluded.parallelism,
+       category=COALESCE(excluded.category, account.category),
        updated_at=excluded.updated_at`,
   ).run(
     a.account,
@@ -105,6 +110,7 @@ export function upsertAccount(a: AccountInput): void {
     (a.tabs ?? ["highlights", "reels", "stories"]).join(","),
     a.parallelism ?? 2,
     a.network ?? "instagram",
+    a.category ?? null,
     now,
     now,
   );
@@ -112,10 +118,10 @@ export function upsertAccount(a: AccountInput): void {
 
 export function updateAccountSettings(
   account: string,
-  p: { mediaTypes?: MediaType[]; tabs?: Tab[]; savePath?: string; parallelism?: number; noteLanguage?: string },
+  p: { mediaTypes?: MediaType[]; tabs?: Tab[]; savePath?: string; parallelism?: number; noteLanguage?: string; category?: string | null },
 ): void {
   const sets: string[] = [];
-  const vals: (string | number)[] = [];
+  const vals: (string | number | null)[] = [];
   if (p.mediaTypes) {
     sets.push("media_types = ?");
     vals.push(p.mediaTypes.join(","));
@@ -135,6 +141,10 @@ export function updateAccountSettings(
   if (p.noteLanguage != null) {
     sets.push("note_language = ?");
     vals.push(p.noteLanguage);
+  }
+  if (p.category !== undefined) {
+    sets.push("category = ?");
+    vals.push((p.category ?? "").trim() || null); // "" clears the category (matches the null read type)
   }
   if (sets.length === 0) return;
   sets.push("updated_at = ?");
@@ -229,6 +239,21 @@ export function getItem(account: string, postId: string): Item | null {
   return r ? rowToItem(r) : null;
 }
 
+/** Remove item rows by post id (their files are deleted by the deletion engine). */
+export function deleteItemRows(account: string, postIds: string[]): void {
+  if (!postIds.length) return;
+  const db = openDb(account);
+  const stmt = db.prepare("DELETE FROM item WHERE post_id = ?");
+  db.exec("BEGIN");
+  try {
+    for (const id of postIds) stmt.run(id);
+    db.exec("COMMIT");
+  } catch (e) {
+    db.exec("ROLLBACK");
+    throw e;
+  }
+}
+
 export function markRead(
   account: string,
   postId: string,
@@ -318,7 +343,8 @@ export function listAccountNames(): string[] {
   if (!existsSync(MANIFESTS)) return [];
   return readdirSync(MANIFESTS)
     .filter((f) => f.endsWith(".db"))
-    .map((f) => f.slice(0, -3));
+    .map((f) => f.slice(0, -3))
+    .filter((name) => !isDeleting(name)); // hide accounts mid-delete
 }
 
 /** Versionable export `manifests/<account>.json` (replaces the root manifest.json). */

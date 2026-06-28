@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS account (
   elapsed_seconds REAL NOT NULL DEFAULT 0,
   network         TEXT NOT NULL DEFAULT 'instagram',       -- source provider id (instagram, tiktok, …)
   note_language   TEXT,                                    -- per-account note language override (null = global default)
+  category        TEXT,                                    -- user-chosen topic (Travel, Tech, Milhas…) for grouping/filtering
   estimated_total INTEGER,                                 -- profile total (gallery-dl --simulate)
   last_synced_at  TEXT,
   created_at      TEXT NOT NULL,

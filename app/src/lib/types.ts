@@ -37,6 +37,8 @@ export interface Account {
   network: string;
   /** Per-account override for the note language (null = follow the global default). */
   noteLanguage: string | null;
+  /** User-chosen topic (Travel, Tech, Milhas…) for grouping/filtering. */
+  category: string | null;
   elapsedSeconds: number;
   lastSyncedAt: string | null;
   /** Estimated total of items in the profile (via "Count" / gallery-dl --simulate). */
@@ -172,6 +174,20 @@ export interface BulkNotesStatus {
 export interface GalleryItem extends Item {
   account: string;
   network: string;
+  category: string | null;
+}
+
+/** Result of deleting media. File removal is best-effort, so `freedBytes` is a
+ *  lower bound (a locked file is dropped from the manifest but not counted). */
+export interface DeleteMediaResult {
+  deleted: number;
+  freedBytes: number;
+}
+
+/** Result of deleting an account. `freedBytes` is disk reclaimed — 0 unless
+ *  `deleteFiles` was set AND the removal actually succeeded. */
+export interface DeleteAccountResult {
+  freedBytes: number;
 }
 
 /** Filters + sort for the global Gallery — one shape shared by the client hook
@@ -181,6 +197,7 @@ export interface GalleryQuery {
   /** A single profile (account name). */
   profile?: string;
   network?: string;
+  category?: string;
   media?: MediaType;
   origin?: Origin;
   sort?: "date" | "size" | "duration";

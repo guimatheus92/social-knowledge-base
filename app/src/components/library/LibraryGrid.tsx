@@ -13,10 +13,16 @@ export function LibraryGrid({
   account,
   filters,
   onSelect,
+  selectMode = false,
+  selected,
+  onToggleSelect,
 }: {
   account: string;
   filters: ItemFilters;
   onSelect: (item: Item) => void;
+  selectMode?: boolean;
+  selected?: Set<string>;
+  onToggleSelect?: (postId: string) => void;
 }) {
   const t = useT();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useItems(
@@ -54,7 +60,15 @@ export function LibraryGrid({
     <>
       <div className={GRID}>
         {items.map((it) => (
-          <ItemTile key={it.postId} account={account} item={it} onSelect={() => onSelect(it)} />
+          <ItemTile
+            key={it.postId}
+            account={account}
+            item={it}
+            onSelect={() => onSelect(it)}
+            selectMode={selectMode}
+            selected={selected?.has(it.postId) ?? false}
+            onToggleSelect={() => onToggleSelect?.(it.postId)}
+          />
         ))}
       </div>
       <div ref={sentinel} className="flex justify-center py-6 text-xs text-muted-foreground">
