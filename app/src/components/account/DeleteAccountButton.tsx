@@ -15,8 +15,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
 import { formatBytes, formatNumber } from "@/lib/format";
@@ -36,10 +34,10 @@ export function DeleteAccountButton({
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [deleteFiles, setDeleteFiles] = useState(false);
-  const [confirm, setConfirm] = useState("");
+  const [confirmChecked, setConfirmChecked] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const canDelete = confirm.trim() === account;
+  const canDelete = confirmChecked;
 
   async function doDelete() {
     if (!canDelete) return;
@@ -66,7 +64,7 @@ export function DeleteAccountButton({
       onOpenChange={(o) => {
         setOpen(o);
         if (!o) {
-          setConfirm("");
+          setConfirmChecked(false);
           setDeleteFiles(false);
         }
       }}
@@ -112,20 +110,15 @@ export function DeleteAccountButton({
           </span>
         </label>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`del-${account}`} className="text-xs text-muted-foreground">
-            {t("delete.typeToConfirm", { account })}
-          </Label>
-          <Input
-            id={`del-${account}`}
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            placeholder={account}
-            autoComplete="off"
-            autoCapitalize="none"
-            spellCheck={false}
+        <label className="flex items-center gap-2.5 text-sm">
+          <input
+            type="checkbox"
+            checked={confirmChecked}
+            onChange={(e) => setConfirmChecked(e.target.checked)}
+            className="size-4 accent-coral"
           />
-        </div>
+          <span>{t("delete.confirmCheckbox", { account })}</span>
+        </label>
 
         <AlertDialogFooter>
           <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
