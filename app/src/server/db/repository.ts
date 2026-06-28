@@ -2,7 +2,7 @@
 import { writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { MANIFESTS } from "@/server/paths";
-import { openDb } from "@/server/db/sqlite";
+import { openDb, isDeleting } from "@/server/db/sqlite";
 import type {
   Account,
   Counts,
@@ -68,6 +68,7 @@ export function setEstimatedTotal(account: string, total: number): void {
 }
 
 export function getAccount(account: string): Account | null {
+  if (isDeleting(account)) return null; // mid-delete: don't re-open the manifest
   const db = openDb(account);
   const r = db.prepare("SELECT * FROM account WHERE account = ?").get(account);
   return r ? rowToAccount(r) : null;
@@ -342,7 +343,8 @@ export function listAccountNames(): string[] {
   if (!existsSync(MANIFESTS)) return [];
   return readdirSync(MANIFESTS)
     .filter((f) => f.endsWith(".db"))
-    .map((f) => f.slice(0, -3));
+    .map((f) => f.slice(0, -3))
+    .filter((name) => !isDeleting(name)); // hide accounts mid-delete
 }
 
 /** Versionable export `manifests/<account>.json` (replaces the root manifest.json). */

@@ -8,7 +8,7 @@ import { rmSync, existsSync, statSync } from "node:fs";
 import { basename, dirname, extname, isAbsolute, join } from "node:path";
 import { ROOT, MANIFESTS, assertSafeSegment } from "@/server/paths";
 import { deleteItemRows, getAccount, getCounts, getItem } from "@/server/db/repository";
-import { closeDb, openDb } from "@/server/db/sqlite";
+import { closeDb, markDeleting, openDb, unmarkDeleting } from "@/server/db/sqlite";
 import { thumbPathFor } from "@/server/engine/thumbnails";
 import { jobManager } from "@/server/engine/jobManager";
 import type { DeleteAccountResult, DeleteMediaResult } from "@/lib/types";
@@ -86,25 +86,31 @@ export async function deleteAccount(
   // Fold the WAL into the .db and switch off WAL before closing, so Windows can
   // actually unlink the manifest — a memory-mapped -wal/-shm otherwise keeps the
   // .db locked and the unlink fails silently (the account then never disappears).
+  // From here the manifest is going away. Mark the account "deleting" so a
+  // concurrent request (the 5s /api/accounts poll) can't re-open the .db and
+  // re-lock it between close() and the unlink retries below.
+  markDeleting(account);
   try {
-    const db = openDb(account);
-    db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
-    db.exec("PRAGMA journal_mode=DELETE");
-  } catch {
-    /* best-effort: still try to close + unlink below */
-  }
-  closeDb(account); // release the SQLite handle before unlinking the manifest
-  const dbFile = join(MANIFESTS, `${account}.db`);
-  // The manifest is the source of truth for listAccountNames, so the account
-  // only really disappears once the .db is gone. Windows can hold the file open
-  // for a moment after close(), so retry the unlink briefly before giving up.
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    for (const suffix of [".db", ".db-wal", ".db-shm", ".json"]) {
-      tryRm(join(MANIFESTS, `${account}${suffix}`));
+    try {
+      const db = openDb(account);
+      db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+      db.exec("PRAGMA journal_mode=DELETE");
+    } catch {
+      /* best-effort: still try to close + unlink below */
     }
-    if (!existsSync(dbFile)) return { freedBytes };
-    await new Promise((resolve) => setTimeout(resolve, 30));
+    closeDb(account); // release the SQLite handle before unlinking the manifest
+    const dbFile = join(MANIFESTS, `${account}.db`);
+    // Windows can hold the file open for a moment after close(), so retry briefly.
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      for (const suffix of [".db", ".db-wal", ".db-shm", ".json"]) {
+        tryRm(join(MANIFESTS, `${account}${suffix}`));
+      }
+      if (!existsSync(dbFile)) return { freedBytes };
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    // Never report success while the account would still show up.
+    throw new Error(`manifest for "${account}" could not be removed (file locked)`);
+  } finally {
+    unmarkDeleting(account);
   }
-  // Never report success while the account would still show up.
-  throw new Error(`manifest for "${account}" could not be removed (file locked)`);
 }

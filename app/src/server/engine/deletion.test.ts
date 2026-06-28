@@ -19,6 +19,8 @@ vi.mock("@/server/db/repository", () => ({
 vi.mock("@/server/db/sqlite", () => ({
   closeDb: vi.fn(),
   openDb: vi.fn(() => ({ exec: vi.fn() })),
+  markDeleting: vi.fn(),
+  unmarkDeleting: vi.fn(),
 }));
 vi.mock("@/server/engine/thumbnails", () => ({
   thumbPathFor: (dir: string, id: string) => `${dir}/.thumbs/${id}.jpg`,
