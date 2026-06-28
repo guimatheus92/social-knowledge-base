@@ -5,6 +5,7 @@ import { Check, Loader2, Sparkles, Square } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { ElapsedTimer } from "@/components/account/ElapsedTimer";
 import {
   Select,
   SelectContent,
@@ -95,6 +96,7 @@ export function NotesControl({
           {job.done}/{job.total}
           {job.errors ? ` · ${job.errors} ${t("notes.errors")}` : ""}
         </span>
+        <ElapsedTimer elapsedSeconds={0} startedAt={job.startedAt} running />
         <Button variant="outline" size="sm" onClick={() => stop.mutate()}>
           <Square />
           {t("notes.stop")}

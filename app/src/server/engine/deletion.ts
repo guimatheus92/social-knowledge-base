@@ -7,7 +7,7 @@
 import { rmSync, existsSync, statSync } from "node:fs";
 import { basename, dirname, extname, isAbsolute, join } from "node:path";
 import { ROOT, MANIFESTS, assertSafeSegment } from "@/server/paths";
-import { deleteItemRows, getAccount, getCounts, getItem } from "@/server/db/repository";
+import { clearItemMedia, deleteItemRows, getAccount, getCounts, getItem } from "@/server/db/repository";
 import { closeDb, markDeleting, openDb, unmarkDeleting } from "@/server/db/sqlite";
 import { thumbPathFor } from "@/server/engine/thumbnails";
 import { jobManager } from "@/server/engine/jobManager";
@@ -36,12 +36,12 @@ function safeSize(p: string): number {
 }
 
 /**
- * Delete media items: the heavy media (video + poster thumb) and the DB row.
- * Without `keepNotes` it also removes the transcript sidecars (.vtt/.txt/.json)
- * and the curated note (.md/.meta.json). With `keepNotes` those are kept on
- * disk — the video frees up space while the note + transcript stay available
- * for RAG re-indexing — but the manifest row still goes, so the item leaves the
- * gallery either way.
+ * Delete media items. A plain delete removes everything (video, poster, the
+ * transcript sidecars and the note) and drops the manifest row. With `keepNotes`,
+ * an item that HAS a note keeps its row as a "note-only" item — only the heavy
+ * video is freed; the note, its transcript sidecars and the poster stay on disk
+ * and the row stays (media nulled) so the note is still readable in the library.
+ * An un-noted item has nothing to keep, so it is deleted outright even then.
  */
 export function deleteMediaItems(
   account: string,
@@ -52,31 +52,42 @@ export function deleteMediaItems(
   const saveDir = acc?.savePath ?? join(ROOT, "downloads", account);
   let freedBytes = 0;
   let deleted = 0;
+  const toDrop: string[] = []; // rows removed entirely
+  const toClear: string[] = []; // rows kept as note-only (media nulled)
   for (const postId of postIds) {
     assertSafeSegment(postId); // never interpolate a crafted id into an rmSync path
     const it = getItem(account, postId);
-    if (!it) continue;
+    if (!it) {
+      toDrop.push(postId); // not in the manifest → make sure no row lingers
+      continue;
+    }
+    const keepThis = Boolean(opts.keepNotes && (it.notePath || it.readAt || it.status === "read"));
+
+    // Always free the heavy video file — that's the whole point, and a plain delete frees it too.
     let abs: string | null = null;
     if (it.relPath) abs = isAbsolute(it.relPath) ? it.relPath : join(ROOT, it.relPath);
     if (abs) {
       const size = existsSync(abs) ? safeSize(abs) : 0;
-      // Only count the primary media file as freed if it was actually removed.
-      if (tryRm(abs)) freedBytes += size;
-      else console.warn(`[deletion] could not remove ${abs}; the manifest row is dropped anyway`);
+      if (tryRm(abs)) freedBytes += size; // only count it as freed if actually removed
+      else console.warn(`[deletion] could not remove ${abs}; the manifest row is updated anyway`);
     }
-    tryRm(thumbPathFor(saveDir, postId)); // derived poster — orphaned once the row goes
-    // "Free space" (keepNotes) keeps the note and its transcript sidecars so the
-    // item stays searchable by RAG; only the heavy media above is removed.
-    if (!opts.keepNotes) {
+
+    if (keepThis) {
+      // note-only: keep the note, its transcript sidecars and the poster on disk.
+      toClear.push(postId);
+    } else {
       if (abs) tryRm(join(dirname(abs), `${basename(abs, extname(abs))}.vtt`)); // .vtt next to the video
       tryRm(join(saveDir, "transcripts", `${postId}.txt`));
       tryRm(join(saveDir, "transcripts", `${postId}.json`));
+      tryRm(thumbPathFor(saveDir, postId)); // derived poster — orphaned once the row goes
       tryRm(join(ROOT, "notes", account, "videos", `${postId}.md`));
       tryRm(join(ROOT, "notes", account, "videos", `${postId}.meta.json`));
+      toDrop.push(postId);
     }
     deleted += 1;
   }
-  deleteItemRows(account, postIds);
+  clearItemMedia(account, toClear);
+  deleteItemRows(account, toDrop);
   return { deleted, freedBytes };
 }
 

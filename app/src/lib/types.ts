@@ -155,6 +155,8 @@ export interface NotesJobStatus {
   errors: number;
   current: string | null;
   recentLog: string[];
+  /** Epoch ms when the run started (drives a live elapsed timer); null when idle. */
+  startedAt: number | null;
 }
 
 /** Progress of a cross-account bulk note-generation run (accounts processed sequentially). */

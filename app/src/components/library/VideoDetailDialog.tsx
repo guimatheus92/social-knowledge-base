@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ElapsedTimer } from "@/components/account/ElapsedTimer";
 import {
   Select,
   SelectContent,
@@ -105,18 +106,23 @@ export function VideoDetailDialog({
   }
   const lang = langOverride ?? data?.noteLanguage ?? DEFAULT_NOTE_LANG;
 
+  const [genStart, setGenStart] = useState<number | null>(null);
   const gen = useMutation({
     mutationFn: (language: string) => api.generateNote(account as string, postId as string, language),
+    onMutate: () => setGenStart(Date.now()),
     onSuccess: (r) => {
       if (r.ok) {
         qc.invalidateQueries({ queryKey: ["detail", account, postId] });
         qc.invalidateQueries({ queryKey: ["accounts"] });
         toast.success(t("detail.noteGenerated"));
       } else {
-        toast.error(r.error || t("detail.error"));
+        toast.error(
+          r.error === "already-generating" ? t("detail.alreadyGenerating") : r.error || t("detail.error"),
+        );
       }
     },
     onError: (e) => toast.error((e as Error).message),
+    onSettled: () => setGenStart(null),
   });
 
   async function openInPlayer() {
@@ -193,10 +199,12 @@ export function VideoDetailDialog({
                     {t("detail.openInstagram")}
                   </Button>
                 )}
-                <Button variant="outline" size="sm" onClick={openInPlayer}>
-                  <Play />
-                  {t("detail.openPlayer")}
-                </Button>
+                {item?.relPath && (
+                  <Button variant="outline" size="sm" onClick={openInPlayer}>
+                    <Play />
+                    {t("detail.openPlayer")}
+                  </Button>
+                )}
                 {data.note && (
                   <Button variant="outline" size="sm" onClick={copyNotePath}>
                     <Copy />
@@ -218,15 +226,19 @@ export function VideoDetailDialog({
                 )}
               </div>
 
-              {/* media: centered thumbnail with the size as a caption */}
+              {/* media: poster for a real video; a note-only item (freed) has none */}
               <div className="flex flex-col items-center gap-1.5">
-                {account && postId && (
+                {account && postId && item?.relPath ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={`/api/accounts/${encodeURIComponent(account)}/items/${encodeURIComponent(postId)}/thumb`}
                     alt=""
                     className="aspect-[9/16] w-32 rounded-xl object-cover ring-1 ring-border"
                   />
+                ) : (
+                  <div className="flex aspect-[9/16] w-32 items-center justify-center rounded-xl bg-gradient-to-b from-violet/25 to-coral/10 text-muted-foreground ring-1 ring-border">
+                    <FileText className="size-7" />
+                  </div>
                 )}
                 <span className="font-mono text-xs text-muted-foreground">
                   {item?.fileSize ? formatBytes(item.fileSize) : ""}
@@ -258,6 +270,9 @@ export function VideoDetailDialog({
                       <Button variant="outline" size="sm" onClick={() => gen.mutate(lang)} disabled={gen.isPending}>
                         {gen.isPending ? <Loader2 className="animate-spin" /> : <RefreshCw />}
                         {t("detail.regenerate")}
+                        {gen.isPending && genStart && (
+                          <ElapsedTimer elapsedSeconds={0} startedAt={genStart} running />
+                        )}
                       </Button>
                     </div>
                   )}
@@ -274,6 +289,9 @@ export function VideoDetailDialog({
                     <Button size="sm" onClick={() => gen.mutate(lang)} disabled={gen.isPending}>
                       {gen.isPending ? <Loader2 className="animate-spin" /> : <Sparkles />}
                       {gen.isPending ? t("detail.generating") : t("detail.generateNote")}
+                      {gen.isPending && genStart && (
+                        <ElapsedTimer elapsedSeconds={0} startedAt={genStart} running />
+                      )}
                     </Button>
                   </div>
                 ) : (

@@ -162,12 +162,26 @@ export function generateNote(
 }
 
 /** Generates one note AND records it in the manifest (status=read + note_path). */
+// Note generations in flight, keyed account:postId. Pinned to globalThis so the
+// guard survives Next dev HMR. Stops the SAME note being generated twice when the
+// batch and the per-video button overlap — each run is minutes of Opus + a file
+// write to the same path.
+const notesGlobal = globalThis as typeof globalThis & { __skbNotesInFlight?: Set<string> };
+const inFlight = (notesGlobal.__skbNotesInFlight ??= new Set<string>());
+
 export async function generateAndRecord(account: string, postId: string, signal?: AbortSignal, language?: string): Promise<{ ok: boolean; error?: string }> {
-  const r = await generateNote(account, postId, signal, language);
-  if (r.ok) {
-    repo.markRead(account, postId, new Date().toISOString(), `notes/${account}/videos/${postId}.md`);
+  const key = `${account}:${postId}`;
+  if (inFlight.has(key)) return { ok: false, error: "already-generating" };
+  inFlight.add(key);
+  try {
+    const r = await generateNote(account, postId, signal, language);
+    if (r.ok) {
+      repo.markRead(account, postId, new Date().toISOString(), `notes/${account}/videos/${postId}.md`);
+    }
+    return r;
+  } finally {
+    inFlight.delete(key);
   }
-  return r;
 }
 
 interface NotesJob extends NotesJobStatus {
@@ -189,6 +203,7 @@ class NotesRunner {
       errors: j.errors,
       current: j.current,
       recentLog: j.recentLog,
+      startedAt: j.startedAt,
     };
   }
 
@@ -218,6 +233,7 @@ class NotesRunner {
       errors: 0,
       current: null,
       recentLog: [],
+      startedAt: Date.now(),
       abort: new AbortController(),
     };
     this.jobs.set(account, job);
@@ -321,6 +337,7 @@ class NotesRunner {
         errors: 0,
         current: null,
         recentLog: [],
+        startedAt: Date.now(),
         abort,
       };
       this.jobs.set(w.account, job);

@@ -254,6 +254,25 @@ export function deleteItemRows(account: string, postIds: string[]): void {
   }
 }
 
+/**
+ * Free an item's media but KEEP the row + its note ("note-only"): null the
+ * video path/size while leaving status='read', note_path and thumb_path intact,
+ * so the freed item still lists in the library and its note stays readable.
+ */
+export function clearItemMedia(account: string, postIds: string[]): void {
+  if (!postIds.length) return;
+  const db = openDb(account);
+  const stmt = db.prepare("UPDATE item SET rel_path = NULL, file_size = NULL WHERE post_id = ?");
+  db.exec("BEGIN");
+  try {
+    for (const id of postIds) stmt.run(id);
+    db.exec("COMMIT");
+  } catch (e) {
+    db.exec("ROLLBACK");
+    throw e;
+  }
+}
+
 export function markRead(
   account: string,
   postId: string,

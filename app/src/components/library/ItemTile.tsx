@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Check, Film, Play } from "lucide-react";
+import { Check, FileText, Film, Play } from "lucide-react";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n/I18nProvider";
@@ -103,8 +103,15 @@ export function ItemTile({
 
       {/* play affordance (left) + duration (right) */}
       <div className="absolute inset-x-0 bottom-0 flex items-center justify-between p-2">
-        <span className="grid size-7 place-items-center rounded-full bg-white/15 ring-1 ring-white/25 backdrop-blur-md transition group-hover:bg-coral group-hover:ring-coral">
-          <Play className="size-3.5 fill-white text-white" />
+        <span
+          className="grid size-7 place-items-center rounded-full bg-white/15 ring-1 ring-white/25 backdrop-blur-md transition group-hover:bg-coral group-hover:ring-coral"
+          title={item.relPath ? undefined : t("tile.noteOnly")}
+        >
+          {item.relPath ? (
+            <Play className="size-3.5 fill-white text-white" />
+          ) : (
+            <FileText className="size-3.5 text-white" />
+          )}
         </span>
         {item.durationS ? (
           <span className="rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-[10px] text-white backdrop-blur-sm">

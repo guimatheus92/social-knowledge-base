@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function idle(account: string): NotesJobStatus {
-  return { account, status: "idle", total: 0, done: 0, errors: 0, current: null, recentLog: [] };
+  return { account, status: "idle", total: 0, done: 0, errors: 0, current: null, recentLog: [], startedAt: null };
 }
 
 /** Start a per-account batch: generate notes for every downloaded-but-unnoted video. */
