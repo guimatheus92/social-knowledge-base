@@ -12,6 +12,8 @@ import { api } from "@/lib/api";
 import { ConnectedAccountCard } from "@/components/account/ConnectedAccountCard";
 import { NetworkCard } from "@/components/account/NetworkCard";
 import { NetworkBulkBar } from "@/components/account/NetworkBulkBar";
+import { CategoryFilter } from "@/components/account/CategoryFilter";
+import { ALL_CATEGORIES, accountCategories, filterByCategory } from "@/lib/categoryFilter";
 import { LoginAccountPanel } from "@/components/LoginAccountPanel";
 import { AddAccountDialog } from "@/components/AddAccountDialog";
 import { DownloadByLinkDialog } from "@/components/DownloadByLinkDialog";
@@ -33,6 +35,7 @@ export default function DashboardPage() {
   const [cookieStatus, setCookieStatus] = useState<"valid" | "expired" | "unknown">("unknown");
   // Drill-in: null = network overview; otherwise show that network's accounts.
   const [activeNetwork, setActiveNetwork] = useState<string | null>(null);
+  const [category, setCategory] = useState<string>(ALL_CATEGORIES);
 
   useEffect(() => {
     const saved = localStorage.getItem(COOKIES_KEY);
@@ -128,6 +131,11 @@ export default function DashboardPage() {
 
   const presentNetworks = NETWORKS.filter((n) => byNetwork.has(n.id));
   const activeAccounts = activeNetwork ? byNetwork.get(activeNetwork) ?? [] : [];
+  const categories = accountCategories(activeAccounts);
+  const hasUncategorized = activeAccounts.some((a) => !a.category);
+  // Fall back to "all" if the selected category isn't valid for this network.
+  const activeCategory = filterByCategory(activeAccounts, category).length ? category : ALL_CATEGORIES;
+  const visibleAccounts = filterByCategory(activeAccounts, activeCategory);
   const hasAnyMedia = (accounts ?? []).some((a) => a.counts.downloaded > 0);
 
   return (
@@ -230,20 +238,37 @@ export default function DashboardPage() {
 
           <LoginAccountPanel cookiesPath={cookiesPath} status={cookieStatus} onChange={updateCookies} />
 
-          {activeAccounts.length >= 2 && (
-            <NetworkBulkBar accounts={activeAccounts} cookiesPath={cookiesPath} />
+          {categories.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">{t("filter.category")}</span>
+              <CategoryFilter
+                categories={categories}
+                value={activeCategory}
+                onChange={setCategory}
+                hasUncategorized={hasUncategorized}
+              />
+              {activeCategory !== ALL_CATEGORIES && (
+                <span className="text-xs text-muted-foreground">
+                  {t("filter.profilesShown", { n: visibleAccounts.length })}
+                </span>
+              )}
+            </div>
+          )}
+
+          {visibleAccounts.length >= 2 && (
+            <NetworkBulkBar accounts={visibleAccounts} cookiesPath={cookiesPath} />
           )}
 
           <section className="space-y-4">
-            {activeAccounts.map((a) => (
+            {visibleAccounts.map((a) => (
               <ConnectedAccountCard key={a.account} summary={a} cookiesPath={cookiesPath} />
             ))}
           </section>
 
-          {activeAccounts.length > 0 && (
+          {visibleAccounts.length > 0 && (
             <>
               <BrandRule />
-              <DiskUsagePanel accounts={activeAccounts} />
+              <DiskUsagePanel accounts={visibleAccounts} />
             </>
           )}
         </>
