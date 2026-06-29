@@ -112,7 +112,7 @@ export const api = {
   gallery: (qs: string) => jget<{ items: GalleryItem[]; total: number }>(`/api/gallery?${qs}`),
   warmThumbnails: () => jpost<{ ok: boolean }>("/api/thumbnails/warm"),
   startJob: (body: StartJobBody) => jpost<JobSnapshot>("/api/jobs", body),
-  startSingle: (body: { url: string; cookiesPath: string; media?: string[] }) =>
+  startSingle: (body: { url: string; cookiesPath: string; media?: string[]; force?: boolean }) =>
     jpost<JobSnapshot>("/api/jobs/single", body),
   stopJob: (account: string) => jpost<JobSnapshot>(`/api/jobs/${encodeURIComponent(account)}/stop`),
   peek: (account: string, cookiesPath: string) =>

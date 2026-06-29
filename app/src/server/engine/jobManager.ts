@@ -26,6 +26,8 @@ export interface StartJobOptions {
   url?: string;
   /** Social network of the account (default: instagram). */
   providerId?: string;
+  /** Force re-download (ignore the archive) — used to restore a freed video. */
+  force?: boolean;
 }
 
 interface JobState extends JobSnapshot {
@@ -33,6 +35,7 @@ interface JobState extends JobSnapshot {
   range?: string;
   url?: string;
   providerId?: string;
+  force?: boolean;
   abort: AbortController;
 }
 
@@ -174,7 +177,12 @@ class JobManager {
    * creates the account (if it doesn't exist) and fires a job in "single" mode —
    * the same account creation/download pattern. Returns the snapshot (includes `account`).
    */
-  async startSingle(opts: { url: string; cookiesPath: string; media?: MediaType[] }): Promise<JobSnapshot> {
+  async startSingle(opts: {
+    url: string;
+    cookiesPath: string;
+    media?: MediaType[];
+    force?: boolean;
+  }): Promise<JobSnapshot> {
     const { account, tab, providerId } = await resolveOwner(opts.url, opts.cookiesPath);
     if (!repo.getAccount(account)) {
       repo.upsertAccount({
@@ -194,6 +202,7 @@ class JobManager {
       mode: "single",
       url: opts.url,
       providerId,
+      force: opts.force,
     });
   }
 
@@ -209,6 +218,7 @@ class JobManager {
       range: opts.range,
       url: opts.url,
       providerId: opts.providerId,
+      force: opts.force,
       startedAt: status === "running" ? Date.now() : null,
       elapsedSeconds: 0,
       downloaded: 0,
@@ -251,6 +261,7 @@ class JobManager {
           incremental: j.mode === "incremental",
           simulate: j.mode === "count",
           singleUrl: j.mode === "single" ? j.url : undefined,
+          force: j.force,
           provider: getProvider(j.providerId),
           signal: j.abort.signal,
           emit: (e) => this.dispatch(j, e),

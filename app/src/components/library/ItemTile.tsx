@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Check, FileText, Film, Play } from "lucide-react";
+import { Check, FileText, Film, Play, VideoOff } from "lucide-react";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n/I18nProvider";
@@ -53,7 +53,10 @@ export function ItemTile({
           alt=""
           loading="lazy"
           onError={() => setBroken(true)}
-          className="size-full object-cover transition duration-300 group-hover:scale-105"
+          className={cn(
+            "size-full object-cover transition duration-300 group-hover:scale-105",
+            !item.relPath && "opacity-50", // media was freed — dim it to read as inactive
+          )}
         />
       ) : (
         <div className="flex size-full items-center justify-center bg-gradient-to-b from-violet/25 to-coral/10 text-muted-foreground">
@@ -97,6 +100,13 @@ export function ItemTile({
         {item.fileSize ? (
           <span className="shrink-0 rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-[10px] text-white/90 backdrop-blur-sm">
             {formatBytes(item.fileSize)}
+          </span>
+        ) : !item.relPath ? (
+          <span
+            className="grid size-5 shrink-0 place-items-center rounded-md bg-black/55 text-white/90 backdrop-blur-sm"
+            title={t("tile.noteOnly")}
+          >
+            <VideoOff className="size-3" />
           </span>
         ) : null}
       </div>

@@ -33,6 +33,8 @@ export interface TabRunOptions {
   simulate?: boolean;
   /** Download a SINGLE video from this URL (instead of enumerating the profile). */
   singleUrl?: string;
+  /** Force re-download: skip the archive so an already-downloaded (or freed) item is re-fetched. */
+  force?: boolean;
   /** Social network of the account (default: Instagram). */
   provider?: SourceProvider;
   signal: AbortSignal;
@@ -89,7 +91,7 @@ export function buildArgs(o: TabRunOptions): string[] {
   const dest = join(o.saveDir, o.tab);
   const args = ["-m", "gallery_dl", "--cookies", o.cookiesPath];
   if (o.simulate) args.push("--simulate");
-  else args.push("--download-archive", archivePath(o.saveDir, o.tab));
+  else if (!o.force) args.push("--download-archive", archivePath(o.saveDir, o.tab));
   args.push("-o", "videos=true", "-D", dest, ...mediaFilterArgs(o.mediaTypes));
   if (o.singleUrl) {
     // Single video: use the media's own URL, without enumerating the profile's tabs.
@@ -261,7 +263,8 @@ export function runTab(o: TabRunOptions): Promise<TabRunResult> {
     o.emit({ t: "tab_start", tab: o.tab });
 
     // Resume: ensures everything on disk is in the archive (avoids re-downloading).
-    if (!o.simulate) {
+    // Skipped under `force` — a re-download deliberately ignores the archive.
+    if (!o.simulate && !o.force) {
       try {
         seedArchive(o.saveDir, o.tab);
       } catch (e) {

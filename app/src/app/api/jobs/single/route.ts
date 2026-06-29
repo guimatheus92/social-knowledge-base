@@ -12,6 +12,7 @@ const Body = z.object({
     .refine((u) => providerForUrl(u) !== null, "Unsupported network (Instagram, TikTok…)"),
   cookiesPath: z.string().min(1),
   media: z.array(z.enum(["image", "video"])).min(1).optional(),
+  force: z.boolean().optional(),
 });
 
 export async function POST(req: Request): Promise<Response> {

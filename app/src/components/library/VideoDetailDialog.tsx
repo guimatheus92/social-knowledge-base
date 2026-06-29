@@ -107,6 +107,7 @@ export function VideoDetailDialog({
   const lang = langOverride ?? data?.noteLanguage ?? DEFAULT_NOTE_LANG;
 
   const [genStart, setGenStart] = useState<number | null>(null);
+  const [redownloading, setRedownloading] = useState(false);
   const gen = useMutation({
     mutationFn: (language: string) => api.generateNote(account as string, postId as string, language),
     onMutate: () => setGenStart(Date.now()),
@@ -131,6 +132,31 @@ export function VideoDetailDialog({
       await api.openFile(account, postId);
     } catch (e) {
       toast.error((e as Error).message);
+    }
+  }
+
+  // Re-fetch a freed video (note-only item) — force-download ignores the archive.
+  async function redownload() {
+    if (!account || !data?.webUrl) return;
+    const cookiesPath = localStorage.getItem("igkb.cookiesPath") ?? "";
+    if (!cookiesPath) {
+      toast.error(t("detail.cookiesNeeded"));
+      return;
+    }
+    setRedownloading(true);
+    try {
+      await api.startSingle({ url: data.webUrl, cookiesPath, media: ["video"], force: true });
+      toast.success(t("detail.redownloadStarted"));
+      // a reel downloads in a few seconds — refresh the item shortly after
+      setTimeout(() => {
+        qc.invalidateQueries({ queryKey: ["detail", account, postId] });
+        qc.invalidateQueries({ queryKey: ["items"] });
+        qc.invalidateQueries({ queryKey: ["accounts"] });
+      }, 5000);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setRedownloading(false);
     }
   }
 
@@ -203,6 +229,18 @@ export function VideoDetailDialog({
                   <Button variant="outline" size="sm" onClick={openInPlayer}>
                     <Play />
                     {t("detail.openPlayer")}
+                  </Button>
+                )}
+                {!item?.relPath && data.webUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={redownload}
+                    disabled={redownloading}
+                    title={t("detail.redownloadTip")}
+                  >
+                    {redownloading ? <Loader2 className="animate-spin" /> : <Download />}
+                    {t("detail.redownload")}
                   </Button>
                 )}
                 {data.note && (

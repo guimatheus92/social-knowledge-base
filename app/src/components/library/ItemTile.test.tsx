@@ -55,7 +55,7 @@ describe("ItemTile", () => {
 
   it("a note-only item (media freed) shows the note affordance and no size badge", () => {
     renderTile(item({ relPath: null, fileSize: null, status: "read", notePath: "notes/x/videos/1.md" }));
-    expect(screen.getByTitle(NOTE_ONLY)).toBeTruthy();
+    expect(screen.getAllByTitle(NOTE_ONLY).length).toBeGreaterThan(0);
     expect(screen.queryByText(SIZE)).toBeNull();
   });
 });
