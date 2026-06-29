@@ -81,6 +81,10 @@ export interface Counts {
   downloaded: number;
   /** Downloaded videos that don't have a curated note yet (note candidates). */
   unnotedVideos: number;
+  /** Videos that already have a curated note (status 'read'). */
+  notedVideos: number;
+  /** Note-only videos: noted but their media was freed (read + no file on disk). */
+  notesOnly: number;
 }
 
 /* ---- Job types (shared server↔UI; no runtime) ---- */
@@ -153,6 +157,8 @@ export interface NotesJobStatus {
   errors: number;
   current: string | null;
   recentLog: string[];
+  /** Epoch ms when the run started (drives a live elapsed timer); null when idle. */
+  startedAt: number | null;
 }
 
 /** Progress of a cross-account bulk note-generation run (accounts processed sequentially). */

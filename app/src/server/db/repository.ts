@@ -254,6 +254,25 @@ export function deleteItemRows(account: string, postIds: string[]): void {
   }
 }
 
+/**
+ * Free an item's media but KEEP the row + its note ("note-only"): null the
+ * video path/size while leaving status='read', note_path and thumb_path intact,
+ * so the freed item still lists in the library and its note stays readable.
+ */
+export function clearItemMedia(account: string, postIds: string[]): void {
+  if (!postIds.length) return;
+  const db = openDb(account);
+  const stmt = db.prepare("UPDATE item SET rel_path = NULL, file_size = NULL WHERE post_id = ?");
+  db.exec("BEGIN");
+  try {
+    for (const id of postIds) stmt.run(id);
+    db.exec("COMMIT");
+  } catch (e) {
+    db.exec("ROLLBACK");
+    throw e;
+  }
+}
+
 export function markRead(
   account: string,
   postId: string,
@@ -281,6 +300,8 @@ export function getCounts(account: string): Counts {
     bytesTotal: 0,
     downloaded: 0,
     unnotedVideos: 0,
+    notedVideos: 0,
+    notesOnly: 0,
   };
   for (const r of rows) {
     const n = num(r.n);
@@ -298,23 +319,39 @@ export function getCounts(account: string): Counts {
     if (r.media_type === "video" && r.status === "downloaded") {
       counts.unnotedVideos += n;
     }
+    // A video is "noted" once read (a curated note exists for it).
+    if (r.media_type === "video" && r.status === "read") {
+      counts.notedVideos += n;
+    }
   }
+  // Note-only = a noted video whose media was freed (no file on disk).
+  const noteOnlyRow = openDb(account)
+    .prepare(
+      "SELECT COUNT(*) AS n FROM item WHERE media_type = 'video' AND status = 'read' AND rel_path IS NULL",
+    )
+    .get() as { n: number } | undefined;
+  counts.notesOnly = num(noteOnlyRow?.n);
   return counts;
 }
 
-export interface ListOpts {
+/** Predicate-only filters (membership, not order/page) shared by the listers below. */
+export interface ItemFilter {
   status?: ItemStatus;
   media?: MediaType;
   origin?: Origin;
   q?: string;
+}
+
+export interface ListOpts extends ItemFilter {
   sort?: "date" | "size";
   limit?: number;
   offset?: number;
 }
 
-export function listItems(account: string, opts: ListOpts = {}): Item[] {
+/** The shared WHERE clause + bound params for a filter (no ordering/pagination). */
+function buildItemWhere(opts: ItemFilter): { clause: string; params: (string | number)[] } {
   const where: string[] = [];
-  const params: any[] = [];
+  const params: (string | number)[] = [];
   if (opts.status) {
     where.push("status = ?");
     params.push(opts.status);
@@ -331,11 +368,50 @@ export function listItems(account: string, opts: ListOpts = {}): Item[] {
     where.push("(caption LIKE ? OR post_id LIKE ?)");
     params.push(`%${opts.q}%`, `%${opts.q}%`);
   }
+  return { clause: where.length ? "WHERE " + where.join(" AND ") : "", params };
+}
+
+export function listItems(account: string, opts: ListOpts = {}): Item[] {
+  const { clause, params } = buildItemWhere(opts);
   // posted_at is not captured yet; IG IDs are chronological → order by id.
   const order = opts.sort === "size" ? "file_size DESC" : "CAST(post_id AS INTEGER) DESC";
-  const sql = `SELECT * FROM item ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY ${order} NULLS LAST LIMIT ? OFFSET ?`;
-  params.push(opts.limit ?? 100, opts.offset ?? 0);
-  return (openDb(account).prepare(sql).all(...params) as any[]).map(rowToItem);
+  const sql = `SELECT * FROM item ${clause} ORDER BY ${order} NULLS LAST LIMIT ? OFFSET ?`;
+  return (
+    openDb(account)
+      .prepare(sql)
+      .all(...params, opts.limit ?? 100, opts.offset ?? 0) as any[]
+  ).map(rowToItem);
+}
+
+/**
+ * Every post_id matching a filter, ignoring pagination — backs the gallery's
+ * "select all" (which must reach items beyond the loaded pages). Returns just
+ * ids (cheap even for thousands of rows) and shares listItems' WHERE logic via
+ * buildItemWhere, so the two can't drift. Takes ItemFilter, not ListOpts: sort
+ * and pagination are meaningless for a full id set.
+ */
+export function listItemIds(account: string, opts: ItemFilter = {}): string[] {
+  const { clause, params } = buildItemWhere(opts);
+  const sql = `SELECT post_id FROM item ${clause}`;
+  return (openDb(account).prepare(sql).all(...params) as { post_id: string }[]).map((r) => r.post_id);
+}
+
+/**
+ * How many of the given ids already have a curated note (status 'read' or a
+ * note_path) — backs the "free up space" warning, where freeing an un-noted
+ * item deletes the only copy of its content with nothing kept. Intersects the
+ * account's noted-id set in memory to avoid a giant SQL `IN (...)`.
+ */
+export function countNotedAmong(account: string, postIds: string[]): number {
+  if (!postIds.length) return 0;
+  const noted = new Set(
+    (
+      openDb(account)
+        .prepare("SELECT post_id FROM item WHERE status = 'read' OR note_path IS NOT NULL")
+        .all() as { post_id: string }[]
+    ).map((r) => r.post_id),
+  );
+  return postIds.reduce((n, id) => n + (noted.has(id) ? 1 : 0), 0);
 }
 
 /** Names of existing accounts (scans manifests/*.db). */

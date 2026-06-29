@@ -19,12 +19,13 @@ import { ElapsedTimer } from "@/components/account/ElapsedTimer";
 import { LastUpdated } from "@/components/account/LastUpdated";
 import { DownloadProgress } from "@/components/account/DownloadProgress";
 import { PlayButton } from "@/components/controls/PlayButton";
+import { accountStatus } from "@/lib/accountStatus";
 import { SyncButton } from "@/components/controls/SyncButton";
 import { MediaTypeToggle } from "@/components/controls/MediaTypeToggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { Copy, ExternalLink, Folder, Images, Sigma } from "lucide-react";
-import Link from "next/link";
+import { LibraryLink } from "@/components/account/LibraryLink";
+import { Copy, ExternalLink, Folder, Sigma } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
@@ -52,7 +53,7 @@ export function AccountCard({
   onMediaChange: (media: MediaType[]) => void;
 }) {
   const { t, locale } = useI18n();
-  const status = snapshot?.status ?? summary.job?.status ?? "idle";
+  const status = accountStatus(snapshot, summary);
   const running = snapshot?.status === "running";
   const busy = status === "running" || status === "queued";
   const counting = snapshot?.mode === "count" && running;
@@ -112,35 +113,9 @@ export function AccountCard({
           </div>
         </CardTitle>
         <CardAction className="flex items-center gap-1.5">
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                hasMedia ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    nativeButton={false}
-                    render={<Link href={`/library/${encodeURIComponent(summary.account)}`} />}
-                  >
-                    <Images className="size-4" />
-                    {t("card.library")}
-                  </Button>
-                ) : (
-                  <span className="inline-flex cursor-not-allowed">
-                    <Button variant="ghost" size="sm" disabled>
-                      <Images className="size-4" />
-                      {t("card.library")}
-                    </Button>
-                  </span>
-                )
-              }
-            />
-            <TooltipContent>
-              {hasMedia ? t("card.libraryTooltip") : t("card.libraryEmptyTooltip")}
-            </TooltipContent>
-          </Tooltip>
+          <LibraryLink account={summary.account} hasMedia={hasMedia} />
           <PlayButton
-            status={snapshot?.status ?? summary.job?.status ?? "idle"}
+            status={status}
             onPlay={onPlay}
             onStop={onStop}
           />
@@ -241,6 +216,7 @@ export function AccountCard({
           <NotesControl
             account={summary.account}
             unnoted={summary.counts.unnotedVideos}
+            noted={summary.counts.notedVideos}
             noteLanguage={summary.noteLanguage}
           />
         </div>
