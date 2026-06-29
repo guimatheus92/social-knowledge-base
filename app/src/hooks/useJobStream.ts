@@ -6,8 +6,13 @@ import { useJobsStore } from "@/store/jobs";
 import { useT } from "@/i18n/I18nProvider";
 import type { StreamMessage } from "@/lib/types";
 
-/** Subscribes to a job's SSE: applies events to the store, revalidates stats, and notifies. */
-export function useJobStream(account: string | null): void {
+/**
+ * Subscribes to a job's SSE: applies events to the store, revalidates stats, and
+ * notifies. `enabled` gates the connection — keep it false for idle accounts so a
+ * dashboard full of cards doesn't hold one persistent SSE each and exhaust the
+ * browser's ~6 connections-per-host limit (which would block all navigation).
+ */
+export function useJobStream(account: string | null, enabled = true): void {
   const applyMessage = useJobsStore((s) => s.applyMessage);
   const qc = useQueryClient();
   const t = useT();
@@ -23,7 +28,7 @@ export function useJobStream(account: string | null): void {
   const jobMode = useRef<string>("full");
 
   useEffect(() => {
-    if (!account) return;
+    if (!account || !enabled) return;
     warned.current = { rate: false, cookies: false };
     const es = new EventSource(`/api/jobs/${encodeURIComponent(account)}/stream`);
     es.onmessage = (ev) => {
@@ -71,5 +76,5 @@ export function useJobStream(account: string | null): void {
       }
     };
     return () => es.close();
-  }, [account, applyMessage, qc]);
+  }, [account, enabled, applyMessage, qc]);
 }

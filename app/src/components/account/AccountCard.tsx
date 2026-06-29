@@ -24,8 +24,8 @@ import { SyncButton } from "@/components/controls/SyncButton";
 import { MediaTypeToggle } from "@/components/controls/MediaTypeToggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { Copy, ExternalLink, Folder, Images, Sigma } from "lucide-react";
-import Link from "next/link";
+import { LibraryLink } from "@/components/account/LibraryLink";
+import { Copy, ExternalLink, FileText, Folder, Sigma } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
@@ -113,33 +113,7 @@ export function AccountCard({
           </div>
         </CardTitle>
         <CardAction className="flex items-center gap-1.5">
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                hasMedia ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    nativeButton={false}
-                    render={<Link href={`/library/${encodeURIComponent(summary.account)}`} />}
-                  >
-                    <Images className="size-4" />
-                    {t("card.library")}
-                  </Button>
-                ) : (
-                  <span className="inline-flex cursor-not-allowed">
-                    <Button variant="ghost" size="sm" disabled>
-                      <Images className="size-4" />
-                      {t("card.library")}
-                    </Button>
-                  </span>
-                )
-              }
-            />
-            <TooltipContent>
-              {hasMedia ? t("card.libraryTooltip") : t("card.libraryEmptyTooltip")}
-            </TooltipContent>
-          </Tooltip>
+          <LibraryLink account={summary.account} hasMedia={hasMedia} />
           <PlayButton
             status={status}
             onPlay={onPlay}
@@ -169,6 +143,12 @@ export function AccountCard({
         <div className="flex flex-wrap items-center gap-3">
           <MediaCountBadges counts={summary.counts} />
           <SizeMeter bytes={summary.counts.bytesTotal} />
+          {summary.counts.bytesTotal === 0 && summary.counts.notedVideos > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-white/[0.03] px-2 py-0.5 text-xs text-muted-foreground">
+              <FileText className="size-3" />
+              {t("card.notesOnly")}
+            </span>
+          )}
           <ElapsedTimer
             elapsedSeconds={snapshot?.elapsedSeconds ?? summary.elapsedSeconds}
             startedAt={snapshot?.startedAt ?? null}

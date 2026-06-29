@@ -18,9 +18,16 @@ export function ConnectedAccountCard({
   cookiesPath: string;
 }) {
   const t = useT();
-  useJobStream(summary.account);
   const snapshot = useJobsStore((s) => s.snapshots[summary.account] ?? null);
   const qc = useQueryClient();
+
+  // Only hold an SSE while a job is active — an idle card keeping a persistent
+  // connection would (× many cards) exhaust the browser's per-host connection
+  // limit and block navigation (see useJobStream's note). Play invalidates the
+  // accounts query below, so the "running" status — and the SSE — kick in at once.
+  const liveStatus = snapshot?.status ?? summary.job?.status ?? null;
+  const jobActive = liveStatus === "queued" || liveStatus === "running" || liveStatus === "paused";
+  useJobStream(summary.account, jobActive);
 
   const onMediaChange = useCallback(
     async (media: MediaType[]) => {
@@ -49,6 +56,7 @@ export function ConnectedAccountCard({
           parallelism: summary.parallelism,
           mode,
         });
+        qc.invalidateQueries({ queryKey: ["accounts"] }); // pick up "running" → opens the SSE
       } catch (e) {
         toast.error((e as Error).message);
       }
