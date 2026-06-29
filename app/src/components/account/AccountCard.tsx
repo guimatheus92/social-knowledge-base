@@ -25,7 +25,7 @@ import { MediaTypeToggle } from "@/components/controls/MediaTypeToggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { LibraryLink } from "@/components/account/LibraryLink";
-import { Copy, ExternalLink, FileText, Folder, Sigma } from "lucide-react";
+import { Copy, ExternalLink, Folder, Sigma } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
@@ -143,12 +143,6 @@ export function AccountCard({
         <div className="flex flex-wrap items-center gap-3">
           <MediaCountBadges counts={summary.counts} />
           <SizeMeter bytes={summary.counts.bytesTotal} />
-          {summary.counts.bytesTotal === 0 && summary.counts.notedVideos > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-white/[0.03] px-2 py-0.5 text-xs text-muted-foreground">
-              <FileText className="size-3" />
-              {t("card.notesOnly")}
-            </span>
-          )}
           <ElapsedTimer
             elapsedSeconds={snapshot?.elapsedSeconds ?? summary.elapsedSeconds}
             startedAt={snapshot?.startedAt ?? null}

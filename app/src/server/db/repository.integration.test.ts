@@ -69,5 +69,11 @@ describe("repository + deletion (real sqlite, no mocks)", () => {
 
     // only the freed-but-noted item remains listed (its note stays reachable)
     expect(listItemIds(ACC)).toEqual(["200"]);
+
+    // it surfaces as note-only in the counts, not as a video on disk
+    const c = getCounts(ACC);
+    expect(c.byMedia.video).toBe(1);
+    expect(c.notesOnly).toBe(1);
+    expect(c.bytesTotal).toBe(0);
   });
 });

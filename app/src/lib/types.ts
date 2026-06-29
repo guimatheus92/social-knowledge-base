@@ -83,6 +83,8 @@ export interface Counts {
   unnotedVideos: number;
   /** Videos that already have a curated note (status 'read'). */
   notedVideos: number;
+  /** Note-only videos: noted but their media was freed (read + no file on disk). */
+  notesOnly: number;
 }
 
 /* ---- Job types (shared server↔UI; no runtime) ---- */

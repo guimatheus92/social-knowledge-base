@@ -301,6 +301,7 @@ export function getCounts(account: string): Counts {
     downloaded: 0,
     unnotedVideos: 0,
     notedVideos: 0,
+    notesOnly: 0,
   };
   for (const r of rows) {
     const n = num(r.n);
@@ -323,6 +324,13 @@ export function getCounts(account: string): Counts {
       counts.notedVideos += n;
     }
   }
+  // Note-only = a noted video whose media was freed (no file on disk).
+  const noteOnlyRow = openDb(account)
+    .prepare(
+      "SELECT COUNT(*) AS n FROM item WHERE media_type = 'video' AND status = 'read' AND rel_path IS NULL",
+    )
+    .get() as { n: number } | undefined;
+  counts.notesOnly = num(noteOnlyRow?.n);
   return counts;
 }
 
