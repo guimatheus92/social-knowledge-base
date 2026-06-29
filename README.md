@@ -133,4 +133,4 @@ platform's Terms of Service and copyright — see **[SECURITY.md](SECURITY.md)**
 
 - **Contribute:** see [CONTRIBUTING.md](CONTRIBUTING.md) (setup, checks, conventions) and the [Code of Conduct](CODE_OF_CONDUCT.md).
 - **Security:** report privately — see [SECURITY.md](SECURITY.md).
-- **License:** [MIT](LICENSE). The tools it drives (gallery-dl, yt-dlp, ffmpeg, the MCP, faster-whisper, …) keep their own licenses; downloaded media belongs to its creators.
+- **License:** [MIT](LICENSE) — covers this repository's code only. The tools it drives (gallery-dl, yt-dlp, ffmpeg, the MCP, faster-whisper, …) keep their own licenses; downloaded media belongs to its creators — see [SECURITY.md](SECURITY.md) ("Responsible use") before downloading or redistributing.
