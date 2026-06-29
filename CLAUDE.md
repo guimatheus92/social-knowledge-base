@@ -73,7 +73,7 @@ The note template is canonical in [`prompts/build-notes.md`](prompts/build-notes
 
 ## App (UI) — `app/`
 
-There is a **Next.js 16 + TypeScript + Tailwind 4 + shadcn/ui (Base UI)** app in [`app/`](app/) that gives a UI to the download: add multiple accounts, choose media, hit Play, watch live progress (SSE), size, time, and browse the collection. It is a **single app** — Node calls the CLIs (`gallery-dl`/`yt-dlp`/`ffmpeg`) via `child_process` (no Python backend).
+There is a **Next.js 16 + TypeScript + Tailwind 4 + shadcn/ui (Base UI)** app in [`app/`](app/) that gives a UI to the download: add multiple accounts, choose media, hit Play, watch live progress (SSE), size, time, browse the collection, **manage it** (select/delete in bulk, or **free up space** — delete a video while keeping its note as a re-downloadable **note-only** item), and **filter profiles by category**. It is a **single app** — Node calls the CLIs (`gallery-dl`/`yt-dlp`/`ffmpeg`) via `child_process` (no Python backend).
 
 - **Manifest:** migrated from `manifest.json` (root, PT) to **per-account SQLite** in [`manifests/<account>.db`](manifests/) (via `node:sqlite`), with JSON export `manifests/<account>.json` (local state — **gitignored**). Schema/repo in `app/src/server/db/`. Migration: `cd app && npx tsx src/server/migrate/importManifest.ts` (reconciles with the disk).
 - **Engine:** `app/src/server/engine/` — `galleryDl.ts` (spawn `python -m gallery_dl`, parse stdout, **seedArchive** to resume without re-downloading), `ffmpeg.ts` (injects ffmpeg into PATH), `jobManager.ts` (per-account jobs, tabs in parallel, serialization by cookies, SSE).
