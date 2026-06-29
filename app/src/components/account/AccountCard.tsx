@@ -19,6 +19,7 @@ import { ElapsedTimer } from "@/components/account/ElapsedTimer";
 import { LastUpdated } from "@/components/account/LastUpdated";
 import { DownloadProgress } from "@/components/account/DownloadProgress";
 import { PlayButton } from "@/components/controls/PlayButton";
+import { accountStatus } from "@/lib/accountStatus";
 import { SyncButton } from "@/components/controls/SyncButton";
 import { MediaTypeToggle } from "@/components/controls/MediaTypeToggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -52,7 +53,7 @@ export function AccountCard({
   onMediaChange: (media: MediaType[]) => void;
 }) {
   const { t, locale } = useI18n();
-  const status = snapshot?.status ?? summary.job?.status ?? "idle";
+  const status = accountStatus(snapshot, summary);
   const running = snapshot?.status === "running";
   const busy = status === "running" || status === "queued";
   const counting = snapshot?.mode === "count" && running;
@@ -140,7 +141,7 @@ export function AccountCard({
             </TooltipContent>
           </Tooltip>
           <PlayButton
-            status={snapshot?.status ?? summary.job?.status ?? "idle"}
+            status={status}
             onPlay={onPlay}
             onStop={onStop}
           />

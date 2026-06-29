@@ -8,6 +8,8 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.{ts,tsx}"],
   },
+  // Match Next's automatic JSX runtime so component tests don't need React in scope.
+  esbuild: { jsx: "automatic" },
 });
