@@ -10,6 +10,5 @@ export default defineConfig({
     globals: true,
     include: ["src/**/*.test.{ts,tsx}"],
   },
-  // Match Next's automatic JSX runtime so component tests don't need React in scope.
-  esbuild: { jsx: "automatic" },
+  // JSX: Vite 8's oxc transform already defaults to the automatic runtime (matches Next).
 });

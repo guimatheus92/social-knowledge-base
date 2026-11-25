@@ -1,0 +1,37 @@
+# Weekly dependency PRs. CI (required on main) tests each one; merge by hand.
+# Minor/patch bumps are grouped into one PR per ecosystem; majors come one PR each.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /app
+    schedule:
+      interval: weekly
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Runtime is Node 24 (CI + Dockerfile) — the types follow the runtime.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    ignore:
+      # Stay on Node 24 LTS; move CI (setup-node) and the Dockerfile together by hand.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
