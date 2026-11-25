@@ -11,7 +11,7 @@ faster-whisper>=1.1
 
 # RAG — search/query over the notes and transcripts
 chromadb>=0.5
-sentence-transformers>=3.0
+sentence-transformers>=6.3.0
 
 # NOTE 1: bulk transcription runs on the GPU (faster-whisper above). The mcp-video-analyzer
 #   MCP can also transcribe (fallback): CPU via `whisper` (pip install -U openai-whisper) or
