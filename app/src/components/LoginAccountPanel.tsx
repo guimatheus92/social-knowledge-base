@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, KeyRound, TriangleAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Tooltip,
   TooltipContent,
@@ -86,12 +85,14 @@ export function LoginAccountPanel({
         <div className="flex flex-col gap-3 border-t border-border px-4 py-3">
           <p className="text-xs text-muted-foreground">{t("login.description")}</p>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="cookies-path">{t("login.cookiesFileLabel")}</Label>
             <Input
               id="cookies-path"
+              aria-label={t("login.cookiesFileLabel")}
               value={cookiesPath}
               onChange={(e) => onChange(e.target.value)}
               placeholder="cookies.txt"
+              // Dimmer than the default: "cookies.txt" looks like a real value otherwise.
+              className="placeholder:text-muted-foreground/45"
               autoComplete="off"
               spellCheck={false}
             />
