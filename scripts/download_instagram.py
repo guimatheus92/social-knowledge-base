@@ -27,7 +27,7 @@ import os
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 # UTF-8 output even on Windows (avoids mojibake/cp1252 in the script's prints).
@@ -54,7 +54,7 @@ DEFAULT_TABS = ["highlights", "reels", "stories"]
 
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def load_manifest(profile: str) -> dict:
@@ -124,7 +124,7 @@ def run_gallery_dl(profile: str, cookies: str, tab: str, rng: str | None,
 
     print(f"-> [{tab}] gallery-dl ({'everything' if include_images else 'video only'})"
           f"{' range=' + rng if rng else ''}")
-    result = subprocess.run(cmd, env=env)
+    result = subprocess.run(cmd, check=False, env=env)
     if result.returncode != 0:
         # gallery-dl may return !=0 over isolated items; don't abort the whole run.
         print(f"WARNING: gallery-dl exited with code {result.returncode} on tab '{tab}'",

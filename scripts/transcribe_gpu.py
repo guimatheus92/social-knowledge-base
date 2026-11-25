@@ -33,8 +33,8 @@ if hasattr(os, "add_dll_directory"):
                 pass
             os.environ["PATH"] = _b + os.pathsep + os.environ.get("PATH", "")
 
-import av  # noqa: E402  (ships with faster-whisper; used to detect the audio track)
-from faster_whisper import WhisperModel  # noqa: E402
+import av  # ships with faster-whisper; used to detect the audio track
+from faster_whisper import WhisperModel
 
 ROOT = Path(__file__).resolve().parent.parent
 DOWNLOADS = ROOT / "downloads"
@@ -71,7 +71,7 @@ GLOSSARY = (
 
 def _vtt_ts(seconds: float) -> str:
     """Seconds -> 'HH:MM:SS.mmm' (WebVTT format)."""
-    ms = int(round(seconds * 1000))
+    ms = round(seconds * 1000)
     h, ms = divmod(ms, 3_600_000)
     m, ms = divmod(ms, 60_000)
     s, ms = divmod(ms, 1000)
@@ -140,7 +140,7 @@ def main() -> None:
     t0 = time.time()
     try:
         model = WhisperModel(args.model, device=device, compute_type=compute)
-    except Exception as e:  # noqa: BLE001  (GPU broken/absent → fall back to CPU)
+    except Exception as e:  # GPU broken/absent → fall back to CPU
         if device == "cuda":
             print(f"GPU unavailable ({e}); falling back to CPU (slower).", file=sys.stderr)
             device, compute = "cpu", "int8"

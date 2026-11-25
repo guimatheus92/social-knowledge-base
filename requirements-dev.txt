@@ -1,0 +1,2 @@
+# Dev/CI tooling. Pinned so CI is reproducible; Dependabot bumps it.
+ruff==0.17.6

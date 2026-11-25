@@ -19,6 +19,7 @@ export function LibraryLink({ account, hasMedia }: { account: string; hasMedia: 
       size="sm"
       disabled={!hasMedia}
       title={hasMedia ? t("card.libraryTooltip") : t("card.libraryEmptyTooltip")}
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- deliberate full navigation, see doc comment
       onClick={() => window.location.assign(`/library/${encodeURIComponent(account)}`)}
     >
       <Images className="size-4" />
