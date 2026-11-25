@@ -93,7 +93,7 @@ export function LibraryView({ account }: { account: string }) {
     <main className="mx-auto w-full max-w-6xl space-y-5 p-6">
       <header className="flex items-center gap-3">
         <Link
-          href="/"
+          href={stats?.account ? `/${stats.account.network}` : "/"}
           className="rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
           aria-label={t("library.back")}
         >

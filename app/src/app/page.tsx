@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { Aperture, ChevronLeft, Images, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -33,8 +34,8 @@ export default function DashboardPage() {
   const t = useT();
   const [cookiesPath, setCookiesPath] = useState("");
   const [cookieStatus, setCookieStatus] = useState<"valid" | "expired" | "unknown">("unknown");
-  // Drill-in: null = network overview; otherwise show that network's accounts.
-  const [activeNetwork, setActiveNetwork] = useState<string | null>(null);
+  // Drill-in lives in the URL: "/" = network overview, "/<network>" = that network's accounts.
+  const activeNetwork = useParams<{ network?: string }>().network ?? null;
   const [category, setCategory] = useState<string>(ALL_CATEGORIES);
 
   useEffect(() => {
@@ -201,7 +202,7 @@ export default function DashboardPage() {
                 key={n.id}
                 network={n.id}
                 accounts={byNetwork.get(n.id) ?? []}
-                onEnter={() => setActiveNetwork(n.id)}
+                href={`/${n.id}`}
               />
             ))}
           </section>
@@ -216,9 +217,8 @@ export default function DashboardPage() {
       ) : (
         <>
           <BrandRule />
-          <button
-            type="button"
-            onClick={() => setActiveNetwork(null)}
+          <Link
+            href="/"
             className="inline-flex items-center gap-2.5 rounded-xl px-3 py-2 text-muted-foreground transition hover:bg-white/5 hover:text-foreground"
           >
             <ChevronLeft className="size-6" />
@@ -234,7 +234,7 @@ export default function DashboardPage() {
             <span className="font-heading text-xl font-semibold text-foreground">
               {networkMeta(activeNetwork).label}
             </span>
-          </button>
+          </Link>
 
           <LoginAccountPanel cookiesPath={cookiesPath} status={cookieStatus} onChange={updateCookies} />
 

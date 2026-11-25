@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { networkMeta } from "@/lib/networks";
 import { formatNumber } from "@/lib/format";
@@ -9,11 +10,11 @@ import type { AccountSummary } from "@/lib/types";
 export function NetworkCard({
   network,
   accounts,
-  onEnter,
+  href,
 }: {
   network: string;
   accounts: AccountSummary[];
-  onEnter: () => void;
+  href: string;
 }) {
   const { t, locale } = useI18n();
   const meta = networkMeta(network);
@@ -22,9 +23,8 @@ export function NetworkCard({
   const accountWord = accounts.length === 1 ? t("hero.wAccount") : t("hero.wAccounts");
 
   return (
-    <button
-      type="button"
-      onClick={onEnter}
+    <Link
+      href={href}
       className="glass group flex w-full items-center gap-4 rounded-2xl p-5 text-left transition hover:-translate-y-0.5 hover:shadow-[0_20px_50px_-28px_rgba(0,0,0,0.85)]"
     >
       <div
@@ -40,6 +40,6 @@ export function NetworkCard({
         </div>
       </div>
       <ChevronRight className="size-5 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
-    </button>
+    </Link>
   );
 }
