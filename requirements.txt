@@ -7,7 +7,7 @@ yt-dlp>=2025.1            # gallery-dl uses it to download/merge video+audio
 # (~16–24× real time). To use the GPU (CUDA 12.8+, e.g. RTX 5060/Blackwell) also install
 # the wheels with the CUDA DLLs:
 #   pip install nvidia-cublas-cu12 nvidia-cudnn-cu12 nvidia-cuda-nvrtc-cu12 nvidia-cuda-runtime-cu12
-faster-whisper>=1.1
+faster-whisper>=1.2.1
 
 # RAG — search/query over the notes and transcripts
 chromadb>=0.5
