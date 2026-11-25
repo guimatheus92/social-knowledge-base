@@ -1,7 +1,7 @@
 # Video download (incl. Stories / Highlights) — authenticates via browser cookies
 # (instaloader was abandoned: its web GraphQL endpoint returns 401 since ~Jan/2025).
 gallery-dl>=1.32.21
-yt-dlp>=2025.1            # gallery-dl uses it to download/merge video+audio
+yt-dlp>=2026.10.26            # gallery-dl uses it to download/merge video+audio
 
 # Bulk GPU transcription — faster-whisper (CTranslate2), via scripts/transcribe_gpu.py
 # (~16–24× real time). To use the GPU (CUDA 12.8+, e.g. RTX 5060/Blackwell) also install
